@@ -132,7 +132,7 @@ export default function MapView() {
             ))}
           </YMap>
           <div className="absolute top-4 left-4 bg-neutral-950/80 backdrop-blur-sm border border-neutral-800 rounded-lg px-4 py-3">
-            <h1 className="text-xl font-serif tracking-wide">Coastal <span className="text-amber-400">Estate</span></h1>
+            <h1 className="text-xl font-serif tracking-wide">Новостройки <span className="text-amber-400">39</span></h1>
             <p className="text-xs text-neutral-400 mt-1">{(properties as Property[]).length} объектов · {groups.length} адресов</p>
           </div>
         </div>
@@ -158,12 +158,12 @@ function PropertyPage({ property }: { property: Property }) {
       <header className="sticky top-0 z-10 bg-neutral-950/90 backdrop-blur border-b border-neutral-800">
         <div className="max-w-4xl mx-auto px-5 py-4 flex items-center justify-between">
           <a href="#/" className="text-neutral-400 hover:text-amber-400 transition text-sm">← К карте</a>
-          <div className="font-serif tracking-wide">Coastal <span className="text-amber-400">Estate</span></div>
+          <div className="font-serif tracking-wide">Новостройки <span className="text-amber-400">39</span></div>
         </div>
       </header>
       <main className="max-w-4xl mx-auto px-5 py-6 space-y-6">
         {imgs.length > 0 && (
-          <img src={imgs[img] || imgs[0]} alt={property.title} className="w-full h-[420px] object-cover rounded-xl" />
+          <img src={imgs[img] || imgs[0]} alt={property.title} className="w-full max-h-[560px] object-contain rounded-xl bg-neutral-900" />
         )}
         {imgs.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -192,11 +192,6 @@ function PropertyPage({ property }: { property: Property }) {
             Оставить заявку на просмотр
           </a>
         </div>
-        {property.url && (
-          <a href={property.url} target="_blank" rel="noopener" className="block text-center text-sm text-neutral-500 hover:text-amber-400">
-            Объект на сайте застройщика →
-          </a>
-        )}
         {property.description && (
           <div>
             <h3 className="text-sm uppercase tracking-wider text-neutral-500 mb-3">Описание</h3>
