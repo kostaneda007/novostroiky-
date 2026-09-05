@@ -3,12 +3,12 @@ import { YMaps, Map as YMap, Placemark } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
 type Property = {
-  id: string; price: number; title: string; description: string; address: string; city: string;
+  id: string; price: number; title: string; description: string; address: string; city: string; complex: string;
   lat: number; lng: number; rooms: number; area: number; floor: string; totalFloors: string;
   feedName: string; images: string[]; phone: string; url: string; seller: string;
 };
 
-type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string };
+type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string; complex: string };
 
 type Filters = { rooms: number[]; city: string | null; feed: string | null; priceMin: string; priceMax: string };
 
@@ -93,6 +93,15 @@ function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
   );
 }
 
+function complexOf(items: Property[]) {
+  const c: Record<string, number> = {};
+  items.forEach((p) => { if (p.complex) c[p.complex] = (c[p.complex] || 0) + 1; });
+  let best = '';
+  let n = 0;
+  Object.entries(c).forEach(([k, v]) => { if (v > n) { n = v; best = k; } });
+  return best;
+}
+
 function balloonHtml(g: Group) {
   const rows = g.items.filter((p) => p.price > 0).slice(0, 5).map((p) =>
     '<div style="margin:6px 0;border-bottom:1px solid #eee;padding-bottom:6px"><b>' +
@@ -150,6 +159,7 @@ export default function MapView() {
         lng: items.reduce((s, p) => s + p.lng, 0) / items.length,
         minPrice: pos.length ? Math.min(...pos) : 0,
         feedName: items[0].feedName,
+        complex: complexOf(items),
       };
     });
   }, [filteredProps]);
@@ -166,7 +176,7 @@ export default function MapView() {
   const filteredAddresses = useMemo(() => {
     if (!query) return groups;
     const q = query.toLowerCase();
-    return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q));
+    return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q) || (g.complex || '').toLowerCase().includes(q));
   }, [groups, query]);
 
   if (propertyPage) return <PropertyPage property={propertyPage} />;
@@ -294,7 +304,7 @@ function AddressCards({ group, onClose }: { group: Group; onClose: () => void })
           <Chevron dir="l" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">{group.address}</div>
+          <div className="font-medium truncate">{group.complex ? '«' + group.complex + '» · ' + group.address : group.address}</div>
           <div className="text-xs text-[#4C4639]">{priceSuffix(group.minPrice)} · {group.items.length} квартир</div>
         </div>
       </div>
@@ -362,9 +372,9 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
       <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {sorted.map((g) => (
           <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left rounded-[20px] bg-white border border-[#E0D7C8] px-4 py-3 hover:shadow-md transition">
-            <div className="text-[#7A5900] font-bold">{g.items.length} кв. · {priceSuffix(g.minPrice)}</div>
+            <div className="font-bold text-[#7A5900] truncate">{g.complex ? '«' + g.complex + '»' : g.address}</div>
             <div className="text-sm truncate mt-0.5">{g.address}</div>
-            <div className="text-xs text-[#4C4639] mt-0.5">{g.feedName}</div>
+            <div className="text-xs text-[#4C4639] mt-0.5">{g.items.length} кв. · {priceSuffix(g.minPrice)} · {g.feedName}</div>
           </button>
         ))}
         {sorted.length === 0 && (

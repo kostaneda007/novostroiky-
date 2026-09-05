@@ -151,6 +151,24 @@ const CITY_CENTERS = {
   'Прибрежное': { lat: 54.7247, lng: 20.4324 },
 };
 
+function extractComplex(text) {
+  const t = String(text || '');
+  const Q = '[«"\']';
+  const QE = '[»"\']';
+  const patterns = [
+    new RegExp('(?:ЖК|Жилой комплекс|Жилой квартал|Гостиничный комплекс|ГК|Апарт-отель|комплекс)\\s*' + Q + '([^«»"\'\n]{2,50})' + QE),
+    new RegExp('комплекс(?:а)?\\s+бизнес-класса\\s+' + Q + '([^«»"\'\n]{2,50})' + QE),
+    new RegExp(Q + '([^«»"\'\n]{2,40})' + QE + '\\s*[-—]\\s*(?:это\\s+)?(?:элитный\\s+)?(?:гостиничный\\s+)?(?:жилой\\s+)?комплекс'),
+    new RegExp('дом\\s+' + Q + '([^«»"\'\n]{2,50})' + QE, 'i'),
+    new RegExp('ЖК\\s+([А-ЯA-ZЁ][А-ЯA-ZЁа-яa-z0-9\\-]{2,25})'),
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m) return m[1].replace(/\s+/g, ' ').trim();
+  }
+  return '';
+}
+
 function detectCity(address, lat, lng) {
   const lower = String(address || '').toLowerCase();
   for (const c of Object.keys(CITY_CENTERS)) {
@@ -268,6 +286,8 @@ async function main() {
     p.lat = Number((base.lat + radius * Math.sin(angle)).toFixed(6));
     p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
+
+  all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
 
   all.forEach((p) => { p.city = detectCity(p.address, p.lat, p.lng); });
 
