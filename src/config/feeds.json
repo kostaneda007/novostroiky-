@@ -16,6 +16,14 @@
       "format": "profitbase",
       "active": true,
       "region": "Калининград / Светлогорск"
+    },
+    {
+      "id": "ksk39",
+      "name": "КСК 39 (Пальмбург, Светлогорск-3)",
+      "url": "https://ksk39.ru/fid_yandex.php",
+      "format": "yandex",
+      "active": true,
+      "region": "Калининградская область"
     }
   ]
 }

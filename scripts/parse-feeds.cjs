@@ -122,25 +122,41 @@ function findCityCoords(address) {
   return null;
 }
 
+function parseArea(v) {
+  if (!v) return 0;
+  const s = String(v).replace(/,/g, '.');
+  const m = s.match(/([0-9]+(?:\.[0-9]+)?)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
 function mapOffer(offer, feed, i) {
-  const locality = deep(offer, ['locality', 'Locality', 'city', 'City'], 0);
-  const street = deep(offer, ['address', 'Address', 'street', 'Street'], 0);
-  const address = street ? (locality ? locality + ', ' + street : street) : (feed.defaultAddress || feed.region);
+  const addr = offer && offer.Address ? offer.Address : offer;
+  const locality = deep(addr, ['locality', 'Locality', 'city', 'City'], 0) || deep(offer, ['locality', 'Locality'], 0);
+  const street = deep(addr, ['street', 'Street'], 0) || deep(offer, ['address', 'Address', 'street', 'Street'], 0);
+  const complex = deep(offer, ['complex', 'Complex', 'building-name', 'BuildingName'], 0);
+  const rawAddr = (street ? street : '') || (locality ? locality : '') || (complex ? complex : '');
+  const fullAddr = locality && street && street.indexOf(locality) === -1
+    ? locality + ', ' + street
+    : (rawAddr || feed.defaultAddress || feed.region);
+  const coordLat = Number(deep(addr, ['latitude', 'Latitude', 'lat'], 0)) || Number(deep(offer, ['latitude', 'Latitude', 'lat'], 0)) || 0;
+  const coordLng = Number(deep(addr, ['longitude', 'Longitude', 'lng', 'lon'], 0)) || Number(deep(offer, ['longitude', 'Longitude', 'lng', 'lon'], 0)) || 0;
+  const rawId = deep(offer, ['id', 'Id', 'ID', 'object-id', 'OfferId'], 0);
+  const id = rawId || (feed.id + '-' + i + '-' + rawAddr.slice(0, 30));
   return {
-    id: String(deep(offer, ['id', 'Id', 'ID', 'object-id'], 0) || i),
+    id: String(id),
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
     price: parseInt(digits(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0)), 10) || 0,
-    title: clean(deep(offer, ['title', 'Title', 'name', 'Name'], 0)) || 'Квартира',
+    title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
     description: clean(deep(offer, ['description', 'Description'], 0)),
-    address,
-    lat: Number(deep(offer, ['latitude', 'Latitude', 'lat'], 0)) || 0,
-    lng: Number(deep(offer, ['longitude', 'Longitude', 'lng', 'lon'], 0)) || 0,
-    rooms: parseRooms(deep(offer, ['rooms', 'Rooms'], 0)),
-    area: parseFloat(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square'], 0)) || 0,
+    address: fullAddr,
+    lat: coordLat,
+    lng: coordLng,
+    rooms: parseRooms(deep(offer, ['rooms', 'Rooms', 'roomsCount'], 0)),
+    area: parseArea(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square', 'TotalArea'], 0)),
     floor: String(deep(offer, ['floor', 'Floor'], 0)),
     totalFloors: String(deep(offer, ['floors-total', 'floorsTotal', 'total-floors', 'TotalFloors'], 0)),
     seller: clean(deep(offer, ['company', 'Company', 'seller', 'Seller', 'developer', 'Developer'], 0)) || feed.name,

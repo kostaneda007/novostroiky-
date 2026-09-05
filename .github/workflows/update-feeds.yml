@@ -17,11 +17,14 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund --legacy-peer-deps
-      - run: node scripts/parse-feeds.cjs
+      - name: Parse feeds
+        run: node scripts/parse-feeds.cjs
+      - name: Prerender static pages
+        run: node scripts/prerender.cjs
       - name: Commit and push
         run: |
           git config user.name "feeds-bot"
           git config user.email "feeds-bot@users.noreply.github.com"
-          git add src/data/properties.json scripts/geocode-cache.json
-          git diff --staged --quiet || git commit -m "chore: автообновление фидов"
+          git add src/data/properties.json public/property public/address public/data public/sitemap.xml public/llms.txt
+          git diff --staged --quiet || git commit -m "chore: автообновление фидов + пререндер страниц"
           git push
