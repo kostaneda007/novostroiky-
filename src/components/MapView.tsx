@@ -30,6 +30,7 @@ type Group = {
   feedName: string;
 };
 
+const DEFAULT_PHONE = '+7 950 673-25-68';
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
 const priceSuffix = (min: number) => (min > 0 ? 'от ' + formatMln(min) : 'цена по запросу');
@@ -134,6 +135,7 @@ export default function MapView() {
 function PropertyDetail({ property, onBack }: { property: Property; onBack: () => void }) {
   const [img, setImg] = useState(0);
   const imgs = property.images;
+  const phone = property.phone || DEFAULT_PHONE;
   return (
     <>
       <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
@@ -169,14 +171,15 @@ function PropertyDetail({ property, onBack }: { property: Property; onBack: () =
           </div>
         )}
         <div className="space-y-2 pt-2">
-          {property.phone && (
-            <a href={'tel:' + property.phone.replace(/[^+0-9]/g, '')} className="block w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold text-center py-3 rounded-lg transition">
-              Позвонить: {property.phone}
-            </a>
-          )}
+          <a href={'tel:' + phone.replace(/[^+0-9]/g, '')} className="block w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold text-center py-3 rounded-lg transition">
+            Позвонить: {phone}
+          </a>
+          <a href={'https://coastal-estate.flexbe.ru/?property_id=' + property.id + '&price=' + property.price + '&address=' + encodeURIComponent(property.address)} target="_blank" rel="noopener" className="block w-full border border-amber-500 text-amber-400 hover:bg-amber-500/10 font-semibold text-center py-3 rounded-lg transition">
+            Оставить заявку на просмотр
+          </a>
           {property.url && (
-            <a href={property.url} target="_blank" rel="noopener" className="block w-full border border-amber-500 text-amber-400 hover:bg-amber-500/10 font-semibold text-center py-3 rounded-lg transition">
-              Открыть на сайте застройщика
+            <a href={property.url} target="_blank" rel="noopener" className="block text-center text-xs text-neutral-500 hover:text-amber-400 pt-1">
+              Объект на сайте застройщика
             </a>
           )}
         </div>
