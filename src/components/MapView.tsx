@@ -5,7 +5,7 @@ import properties from '../data/properties.json';
 type Property = {
   id: string; price: number; title: string; description: string; address: string; city: string; complex: string;
   lat: number; lng: number; rooms: number; area: number; floor: string; totalFloors: string;
-  feedName: string; images: string[]; phone: string; url: string; seller: string;
+  feedName: string; images: string[]; phone: string; url: string; seller: string; sea?: number;
 };
 
 type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string; complex: string };
@@ -14,12 +14,22 @@ type Filters = { rooms: number[]; city: string | null; complex: string | null; f
 const EMPTY_FILTERS: Filters = { rooms: [], city: null, complex: null, feed: null, priceMin: '', priceMax: '' };
 const ROOM_OPTIONS = [0, 1, 2, 3, 4];
 const roomLabel = (r: number) => (r === 0 ? 'Студия' : r === 4 ? '4+' : String(r));
+const seaLabel = (m: number) => (m < 1000 ? m + ' м' : (m / 1000).toFixed(1).replace('.', ',') + ' км');
 const PHONE = '+7 950 673-25-68';
 
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
 const priceSuffix = (min: number) => (min > 0 ? 'от ' + formatMln(min) : 'цена по запросу');
 const flexbeUrl = (p: Property) => 'https://coastal-estate.flexbe.ru/?property_id=' + p.id + '&price=' + p.price + '&address=' + encodeURIComponent(p.address);
+
+const FAV_KEY = 'novostroiky39_favs';
+function getFavs(): string[] { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; } }
+function toggleFav(id: string) { const f = getFavs(); const i = f.indexOf(id); if (i >= 0) f.splice(i, 1); else f.push(id); localStorage.setItem(FAV_KEY, JSON.stringify(f)); window.dispatchEvent(new Event('favs-changed')); }
+function useFavs(): string[] {
+  const [favs, setFavs] = useState<string[]>(getFavs());
+  useEffect(() => { const on = () => setFavs(getFavs()); window.addEventListener('favs-changed', on); window.addEventListener('storage', on); return () => { window.removeEventListener('favs-changed', on); window.removeEventListener('storage', on); }; }, []);
+  return favs;
+}
 
 function useHash() {
   const [hash, setHash] = useState(window.location.hash);
@@ -199,6 +209,7 @@ export default function MapView() {
   }, [groups, query]);
 
   if (hash === '#/calc') return <MortgageCalculator />;
+  if (hash === '#/favorites') return <FavoritesPage />;
 
   if (propertyPage) return <PropertyPage property={propertyPage} />;
 
@@ -231,7 +242,7 @@ export default function MapView() {
           <div className="absolute top-4 left-4 bg-white rounded-3xl shadow-lg px-5 py-4">
             <h1 className="text-xl font-medium tracking-wide">Новостройки <span className="text-[#7A5900] font-bold">39</span></h1>
             <p className="text-xs text-[#4C4639] mt-1">{filteredProps.length} объектов · {groups.length} адресов</p>
-            <a href="#/calc" className="inline-block mt-2 text-xs font-medium text-[#7A5900] hover:underline">Ипотечный калькулятор →</a>
+            <div className="mt-2 flex gap-3"><a href="#/calc" className="text-xs font-medium text-[#7A5900] hover:underline">Калькулятор →</a><a href="#/favorites" className="text-xs font-medium text-[#7A5900] hover:underline">Избранное →</a></div>
           </div>
         </div>
 
@@ -356,13 +367,14 @@ function PropertyCard({ p }: { p: Property }) {
         <div className="w-full h-40 bg-[#F4EEE3] rounded-2xl flex items-center justify-center text-[#7E7669] text-sm">нет фото</div>
       )}
       <div className="px-1.5 pt-3 pb-1 space-y-2">
-        <div className="text-2xl font-bold text-[#7A5900]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
+        <div className="flex items-start justify-between gap-2"><div className="text-2xl font-bold text-[#7A5900]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div><FavButton id={p.id} /></div>
         <div className="text-[15px] font-medium">
           {p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} квартира · {p.area > 0 ? String(p.area).replace('.', ',') + ' м²' : ''} {p.floor ? '· ' + p.floor + (p.totalFloors ? '/' + p.totalFloors : '') + ' эт.' : ''}
         </div>
         <div className="text-sm text-[#4C4639]">{p.complex ? 'ЖК «' + p.complex + '» · ' : ''}{p.address}</div>
         {niceTitle && <div className="text-xs text-[#4C4639] truncate">{niceTitle}</div>}
         <div className="flex flex-wrap gap-1.5 pt-1">
+          {p.sea != null && p.sea <= 5000 && <span className="px-3 py-1.5 rounded-lg bg-[#E0F2FE] text-[#0369A1] text-xs font-medium">🌊 {seaLabel(p.sea)} до моря</span>}
           <span className="px-3 py-1.5 rounded-lg bg-[#E6F4EA] text-[#1E7E34] text-xs font-medium">От застройщика</span>
           <span className="px-3 py-1.5 rounded-lg bg-[#FFF3E0] text-[#B26A00] text-xs font-medium">Без комиссии</span>
           {p.price > 0 && <span className="px-3 py-1.5 rounded-lg bg-[#F4EEE3] text-[#4C4639] text-xs font-medium">Ипотека доступна</span>}
@@ -546,6 +558,42 @@ function MortgageCalculator() {
           </div>
           <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="block w-full py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg transition">Оставить заявку на ипотеку</a>
         </div>
+      </main>
+    </div>
+  );
+}
+
+function FavButton({ id }: { id: string }) {
+  const favs = useFavs();
+  const on = favs.includes(id);
+  return (
+    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFav(id); }} aria-label="В избранное" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#7A5900] border-[#7A5900] text-white' : 'bg-white border-[#E0D7C8] text-[#7A5900] hover:border-[#7A5900]')}>
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>
+    </button>
+  );
+}
+
+function FavoritesPage() {
+  const favs = useFavs();
+  const items = useMemo(() => (properties as Property[]).filter((p) => favs.includes(p.id)), [favs]);
+  return (
+    <div className="min-h-screen bg-[#FDF9F3] text-[#1E1B13]">
+      <header className="sticky top-0 z-10 bg-[#FDF9F3]/95 backdrop-blur border-b border-[#E0D7C8]">
+        <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
+          <a href="#/" className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ECE5D8] transition text-[#4C4639]" aria-label="К карте"><Chevron dir="l" /></a>
+          <div className="text-lg font-medium">Избранное <span className="text-[#7A5900] font-bold">{items.length}</span></div>
+          <div className="w-11" />
+        </div>
+      </header>
+      <main className="max-w-4xl mx-auto px-5 py-6">
+        {items.length === 0 ? (
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-10 text-center text-[#4C4639]">
+            Пока пусто. Нажимайте ❤️ на карточках, чтобы сохранить квартиры.
+            <div className="mt-4"><a href="#/" className="text-[#7A5900] font-medium hover:underline">← К карте</a></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{items.map((p) => <PropertyCard key={p.id} p={p} />)}</div>
+        )}
       </main>
     </div>
   );

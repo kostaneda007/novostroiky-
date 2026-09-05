@@ -170,6 +170,19 @@ function extractComplex(text) {
   return '';
 }
 
+const COAST = [[54.65,19.92],[54.70,19.98],[54.78,20.00],[54.85,20.00],[54.87,20.03],[54.90,20.10],[54.93,20.12],[54.94,20.15],[54.95,20.23],[54.96,20.35],[54.96,20.47],[54.97,20.60]];
+function seaDistance(lat, lng) {
+  let best = Infinity;
+  for (const [clat, clng] of COAST) {
+    const dLat = (clat - lat) * Math.PI / 180;
+    const dLng = (clng - lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat * Math.PI / 180) * Math.cos(clat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    const d = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    if (d < best) best = d;
+  }
+  return Math.round(best / 50) * 50;
+}
+
 function detectCity(address, lat, lng) {
   const lower = String(address || '').toLowerCase();
   for (const c of Object.keys(CITY_CENTERS)) {
@@ -292,6 +305,8 @@ async function main() {
   all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
 
   all.forEach((p) => { p.city = detectCity(p.address, p.lat, p.lng); });
+
+  all.forEach((p) => { if (p.lat && p.lng) p.sea = seaDistance(p.lat, p.lng); });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
