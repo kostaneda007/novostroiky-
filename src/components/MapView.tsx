@@ -58,7 +58,7 @@ function Header({ hash }: { hash: string }) {
       <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-3">
         <a href="#/" className="font-serif text-lg font-medium whitespace-nowrap">Новостройки <span className="text-[#7A5900] font-bold">39</span></a>
         <nav className="hidden md:flex items-center gap-1">
-          {nav.map((n) => <a key={n.h} href={n.h} className={'px-3 py-2 rounded-full text-sm font-medium transition ' + (act(n.h) ? 'bg-[#FFDEA6] text-[#261900]' : 'text-[#4C4639] hover:bg-[#F4EEE3]')}>{n.l}</a>)}
+          {nav.map((n) => <a key={n.h} href={n.h} className={'px-3 py-2 rounded-full text-sm font-medium transition ' + (act(n.h) ? 'bg-[#FFDEA6] text-[#261900]' : 'text-[#4C4639] hover:bg-[#F4EEE3]')}>{n.l}{n.h === '#/compare' && cmp.length > 0 ? ' · ' + cmp.length : ''}</a>)}
           <a href="#/favorites" className={'ml-1 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 ' + (hash.indexOf('#/favorites') === 0 ? 'bg-[#FFDEA6] text-[#261900]' : 'text-[#7A5900] hover:bg-[#F4EEE3]')}><HeartIcon filled={favs.length > 0} /> {favs.length}</a>
         </nav>
         <button className="md:hidden w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#F4EEE3]" onClick={() => setOpen(!open)} aria-label="Меню">
@@ -67,7 +67,7 @@ function Header({ hash }: { hash: string }) {
       </div>
       {open && (
         <nav className="md:hidden border-t border-[#E0D7C8] bg-white px-4 py-2 flex flex-col">
-          {nav.map((n) => <a key={n.h} href={n.h} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{n.l}</a>)}
+          {nav.map((n) => <a key={n.h} href={n.h} onClick={() => setOpen(false)} className="py-2 text-sm font-medium">{n.l}{n.h === '#/compare' && cmp.length > 0 ? ' · ' + cmp.length : ''}</a>)}
           <a href="#/favorites" onClick={() => setOpen(false)} className="py-2 text-sm font-medium text-[#7A5900]">Избранное ({favs.length})</a>
         </nav>
       )}
@@ -130,8 +130,8 @@ function useCmp(): string[] {
 function CompareButton({ id }: { id: string }) {
   const cmp = useCmp(); const on = cmp.includes(id);
   return (
-    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCmp(id); }} aria-label="Сравнить" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#0369A1] border-[#0369A1] text-white' : 'bg-white border-[#E0D7C8] text-[#0369A1] hover:border-[#0369A1]')}>
-      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7" /></svg>
+    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCmp(id); }} className={'h-10 px-3 rounded-full border text-xs font-medium transition ' + (on ? 'bg-[#0369A1] border-[#0369A1] text-white' : 'bg-white border-[#E0D7C8] text-[#0369A1] hover:border-[#0369A1]')}>
+      {on ? '✓ В сравнении' : 'Сравнить'}
     </button>
   );
 }

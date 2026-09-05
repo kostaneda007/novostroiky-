@@ -245,7 +245,28 @@ function mapAvito(ad, feed, i) {
   };
 }
 
-async function parseFeed(feed) {
+async const findAds = (node) => {
+  if (!node || typeof node !== 'object') return [];
+  if (node.Ad) return Array.isArray(node.Ad) ? node.Ad : [node.Ad];
+  for (const key of Object.keys(node)) {
+    const found = findAds(node[key]);
+    if (found.length) return found;
+  }
+  return [];
+};
+
+const findOffers = (node) => {
+  if (!node || typeof node !== 'object') return [];
+  if (node.Offer) return Array.isArray(node.Offer) ? node.Offer : [node.Offer];
+  if (node.offer) return Array.isArray(node.offer) ? node.offer : [node.offer];
+  for (const key of Object.keys(node)) {
+    const found = findOffers(node[key]);
+    if (found.length) return found;
+  }
+  return [];
+};
+
+function parseFeed(feed) {
   console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
   const response = await fetch(feed.url, { headers: HEADERS, redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status);
