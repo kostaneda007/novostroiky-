@@ -9,9 +9,9 @@ type Property = {
 };
 
 type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string; complex: string };
-type Filters = { rooms: number[]; city: string | null; feed: string | null; priceMin: string; priceMax: string };
+type Filters = { rooms: number[]; city: string | null; complex: string | null; feed: string | null; priceMin: string; priceMax: string };
 
-const EMPTY_FILTERS: Filters = { rooms: [], city: null, feed: null, priceMin: '', priceMax: '' };
+const EMPTY_FILTERS: Filters = { rooms: [], city: null, complex: null, feed: null, priceMin: '', priceMax: '' };
 const ROOM_OPTIONS = [0, 1, 2, 3, 4];
 const roomLabel = (r: number) => (r === 0 ? 'Студия' : r === 4 ? '4+' : String(r));
 const PHONE = '+7 950 673-25-68';
@@ -141,9 +141,16 @@ export default function MapView() {
 
   const feeds = useMemo(() => Array.from(new Set((properties as Property[]).map((p) => p.feedName))), []);
 
+  const complexes = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (properties as Property[]).forEach((p) => { if (p.complex) counts[p.complex] = (counts[p.complex] || 0) + 1; });
+    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  }, []);
+
   const filteredProps = useMemo(() => (properties as Property[]).filter((p) => {
     if (filters.rooms.length && !filters.rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;
     if (filters.city && p.city !== filters.city) return false;
+    if (filters.complex && p.complex !== filters.complex) return false;
     if (filters.feed && p.feedName !== filters.feed) return false;
     const min = parseFloat(filters.priceMin) || 0;
     const max = parseFloat(filters.priceMax) || Infinity;
@@ -224,7 +231,7 @@ export default function MapView() {
           {selectedGroup ? (
             <AddressCards group={selectedGroup} onClose={() => setSelectedAddress(null)} />
           ) : (
-            <AddressList groups={filteredAddresses} total={filteredProps.length} query={query} setQuery={setQuery} onSelect={(a) => setSelectedAddress(a)} filters={filters} setFilters={setFilters} cities={cities} feeds={feeds} />
+            <AddressList groups={filteredAddresses} total={filteredProps.length} query={query} setQuery={setQuery} onSelect={(a) => setSelectedAddress(a)} filters={filters} setFilters={setFilters} cities={cities} complexes={complexes} feeds={feeds} />
           )}
         </aside>
       </div>
@@ -281,9 +288,9 @@ function Stat({ label, value }: { label: string; value: string }) {
 function PhoneButton() {
   const [show, setShow] = useState(false);
   return show ? (
-    <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="flex-1 h-12 rounded-full bg-[#7A5900] text-white font-medium flex items-center justify-center hover:shadow-lg transition">{PHONE}</a>
+    <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="w-full h-12 px-4 rounded-full bg-[#7A5900] text-white text-sm font-medium flex items-center justify-center hover:shadow-lg transition whitespace-nowrap">{PHONE}</a>
   ) : (
-    <button onClick={() => setShow(true)} className="flex-1 h-12 rounded-full bg-[#7A5900] text-white font-medium hover:shadow-lg transition">Показать телефон</button>
+    <button onClick={() => setShow(true)} className="w-full h-12 px-4 rounded-full bg-[#7A5900] text-white text-sm font-medium hover:shadow-lg transition whitespace-nowrap">Показать телефон</button>
   );
 }
 
@@ -327,7 +334,7 @@ function PropertyCard({ p }: { p: Property }) {
           {p.price > 0 && <span className="px-3 py-1.5 rounded-lg bg-[#F4EEE3] text-[#4C4639] text-xs font-medium">Ипотека доступна</span>}
         </div>
         <div className="flex gap-2 pt-2">
-          <div onClick={blockClick}><PhoneButton /></div>
+          <div onClick={blockClick} className="flex-1 min-w-0"><PhoneButton /></div>
           <a href={flexbeUrl(p)} target="_blank" rel="noopener" aria-label="Оставить заявку" onClick={blockClick} className="w-12 h-12 rounded-2xl bg-[#ECE5D8] flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition"><ChatIcon /></a>
         </div>
       </div>
@@ -361,12 +368,12 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
-function AddressList({ groups, total, query, setQuery, onSelect, filters, setFilters, cities, feeds }: {
+function AddressList({ groups, total, query, setQuery, onSelect, filters, setFilters, cities, complexes, feeds }: {
   groups: Group[]; total: number; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void;
-  filters: Filters; setFilters: (f: Filters) => void; cities: string[]; feeds: string[];
+  filters: Filters; setFilters: (f: Filters) => void; cities: string[]; complexes: string[]; feeds: string[];
 }) {
   const sorted = [...groups].sort((a, b) => (a.minPrice || Infinity) - (b.minPrice || Infinity));
-  const active = filters.rooms.length > 0 || !!filters.city || !!filters.feed || !!filters.priceMin || !!filters.priceMax;
+  const active = filters.rooms.length > 0 || !!filters.city || !!filters.complex || !!filters.feed || !!filters.priceMin || !!filters.priceMax;
   const toggleRoom = (r: number) => {
     const rooms = filters.rooms.includes(r) ? filters.rooms.filter((x) => x !== r) : [...filters.rooms, r];
     setFilters({ ...filters, rooms });
@@ -379,8 +386,15 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
       </div>
       <div className="px-4 pb-3 space-y-2">
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full py-3 px-5 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {cities.map((c) => <Chip key={c} active={filters.city === c} onClick={() => setFilters({ ...filters, city: filters.city === c ? null : c })}>{c}</Chip>)}
+        <div className="grid grid-cols-2 gap-2">
+          <select value={filters.city || ''} onChange={(e) => setFilters({ ...filters, city: e.target.value || null })} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm text-[#1E1B13] focus:outline-none focus:border-[#7A5900]">
+            <option value="">Все города</option>
+            {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.complex || ''} onChange={(e) => setFilters({ ...filters, complex: e.target.value || null })} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm text-[#1E1B13] focus:outline-none focus:border-[#7A5900]">
+            <option value="">Все ЖК</option>
+            {complexes.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {ROOM_OPTIONS.map((r) => <Chip key={r} active={filters.rooms.includes(r)} onClick={() => toggleRoom(r)}>{roomLabel(r)}</Chip>)}
