@@ -67,47 +67,32 @@ function deep(node, keys, depth) {
 
 function getImages(node) {
   const out = [];
-  const isImg = (v) => typeof v === 'string' && /^https?:\/\/\S+\.(jpe?g|png|webp)(\?\S*)?$/i.test(v.trim());
   const isUrl = (v) => typeof v === 'string' && /^https?:\/\/\S+$/i.test(v.trim());
-  const isImgKey = (k) => /image|photo|picture|фото/i.test(String(k));
-  const walk = (n, d) => {
-    if (!n || typeof n !== 'object' || d > 5) return;
-    if (Array.isArray(n)) { n.forEach((x) => walk(x, d)); return; }
-    if (n.$) { for (const ak of Object.keys(n.$)) { const v = n.$[ak]; if (isImg(v) || (isImgKey(ak) && isUrl(v))) out.push(String(v).trim()); } }
-    if (typeof n._ === 'string' && isImg(n._)) out.push(n._.trim());
+  const isImgKey = (k) => /image|photo|picture|фото|галере|gallery/i.test(String(k));
+  const collectAll = (n, d) => {
+    if (d > 3 || !n || typeof n !== 'object') return;
+    if (Array.isArray(n)) { n.forEach((x) => collectAll(x, d)); return; }
+    if (typeof n._ === 'string' && isUrl(n._)) out.push(n._.trim());
+    if (n.$) for (const ak of Object.keys(n.$)) { if (isUrl(n.$[ak])) out.push(String(n.$[ak]).trim()); }
     for (const k of Object.keys(n)) {
       if (k === '$' || k === '_') continue;
       const v = n[k];
-      if (typeof v === 'string') {
-        if (isImg(v) || (isImgKey(k) && isUrl(v))) out.push(v.trim());
-      } else if (v && typeof v === 'object') walk(v, d + 1);
+      if (typeof v === 'string') { if (isUrl(v)) out.push(v.trim()); }
+      else if (v && typeof v === 'object') collectAll(v, d + 1);
+    }
+  };
+  const walk = (n, d) => {
+    if (!n || typeof n !== 'object' || d > 5) return;
+    if (Array.isArray(n)) { n.forEach((x) => walk(x, d)); return; }
+    for (const k of Object.keys(n)) {
+      const v = n[k];
+      if (isImgKey(k)) collectAll(v, 0);
+      else if (v && typeof v === 'object') walk(v, d + 1);
     }
   };
   walk(node, 0);
   return Array.from(new Set(out)).slice(0, 12);
 }
-
-const findAds = (node) => {
-  if (!node || typeof node !== 'object') return [];
-  if (node.Ad) return Array.isArray(node.Ad) ? node.Ad : [node.Ad];
-  for (const key of Object.keys(node)) {
-    const found = findAds(node[key]);
-    if (found.length) return found;
-  }
-  return [];
-};
-
-const findOffers = (node) => {
-  if (!node || typeof node !== 'object') return [];
-  if (node.Offer) return Array.isArray(node.Offer) ? node.Offer : [node.Offer];
-  if (node.offer) return Array.isArray(node.offer) ? node.offer : [node.offer];
-  for (const key of Object.keys(node)) {
-    const found = findOffers(node[key]);
-    if (found.length) return found;
-  }
-  return [];
-};
-
 function findAddress(node, depth) {
   if (!node || typeof node !== 'object' || depth > 3) return '';
   for (const key of ['Address', 'address', 'FullAddress', 'LocationAddress']) {

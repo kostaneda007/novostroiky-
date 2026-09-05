@@ -18,6 +18,7 @@ const PHONE = '+7 950 673-25-68';
 const formatPrice = (p: number) => new Intl.NumberFormat('ru-RU').format(p) + ' ₽';
 const formatMln = (p: number) => (p / 1000000).toFixed(1).replace('.', ',') + ' млн';
 const priceSuffix = (m: number) => (m > 0 ? 'от ' + formatMln(m) : 'цена по запросу');
+const esc = (v: unknown) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const flexbeUrl = (p: Property) => 'https://coastal-estate.flexbe.ru/?property_id=' + p.id + '&price=' + p.price + '&address=' + encodeURIComponent(p.address);
 
 const FAV_KEY = 'novostroiky39_favs';
@@ -128,7 +129,7 @@ function complexOf(items: Property[]) {
 
 function balloonHtml(g: Group) {
   const rows = g.items.filter((p) => p.price > 0).slice(0, 5).map((p) => '<div style="margin:6px 0;border-bottom:1px solid #eee;padding-bottom:6px"><b>' + formatPrice(p.price) + '</b><br/><span style="color:#888">' + (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') + ' · ' + p.area + ' м²</span></div>').join('');
-  return '<div style="max-width:280px;font-family:Roboto,sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' + g.items.length + ' квартир · ' + priceSuffix(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' + g.address + '</div>' + rows + '</div>';
+  return '<div style="max-width:280px;font-family:Roboto,sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' + g.items.length + ' квартир · ' + priceSuffix(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' + esc(g.address) + '</div>' + rows + '</div>';
 }
 
 function PropertyCard({ p }: { p: Property }) {
@@ -264,7 +265,7 @@ function MapScreen() {
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex h-full bg-[#FDF9F3] text-[#1E1B13]">
         <div className="flex-1 relative">
-          <YMap defaultState={{ center, zoom: 10 }} options={{ suppressMapOpenBlock: true }} style={{ width: '100%', height: '100%' }}>
+          <YMap defaultState={{ center: [54.82, 20.45], zoom: 9 }} options={{ suppressMapOpenBlock: true }} style={{ width: '100%', height: '100%' }}>
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
             ))}
