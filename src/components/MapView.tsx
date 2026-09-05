@@ -458,9 +458,10 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
         <div className="flex gap-2 overflow-x-auto pb-1">
           {ROOM_OPTIONS.map((r) => <Chip key={r} active={filters.rooms.includes(r)} onClick={() => toggleRoom(r)}>{roomLabel(r)}</Chip>)}
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {feeds.map((f) => <Chip key={f} active={filters.feed === f} onClick={() => setFilters({ ...filters, feed: filters.feed === f ? null : f })}>{f}</Chip>)}
-        </div>
+        <select value={filters.feed || ''} onChange={(e) => setFilters({ ...filters, feed: e.target.value || null })} className="w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm text-[#1E1B13] focus:outline-none focus:border-[#7A5900]">
+          <option value="">Все застройщики</option>
+          {feeds.map((f) => <option key={f} value={f}>{f}</option>)}
+        </select>
         <div className="flex gap-2 items-center">
           <input value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} type="number" placeholder="Цена от, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
           <input value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} type="number" placeholder="до, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
