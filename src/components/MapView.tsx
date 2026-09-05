@@ -62,13 +62,12 @@ export default function MapView() {
   const [selected, setSelected] = useState<Property | null>(null);
 
   const groups = useMemo<Group[]>(() => {
-    const map = new Map<string, Property[]>();
+    const grouped: Record<string, Property[]> = {};
     for (const p of properties as Property[]) {
-      const arr = map.get(p.address);
-      if (arr) arr.push(p);
-      else map.set(p.address, [p]);
+      if (!grouped[p.address]) grouped[p.address] = [];
+      grouped[p.address].push(p);
     }
-    return Array.from(map.entries()).map(([address, items]) => ({
+    return Object.entries(grouped).map(([address, items]) => ({
       address,
       items,
       lat: items.reduce((s, p) => s + p.lat, 0) / items.length,
