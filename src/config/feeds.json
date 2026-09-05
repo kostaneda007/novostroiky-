@@ -4,10 +4,18 @@
       "id": "ksi-svetlogorsk",
       "name": "КалининградСтройИнвест",
       "url": "https://kaliningradstroyinvest.ru/avito_xml.php",
+      "format": "avito",
       "active": true,
       "region": "Светлогорск",
-      "defaultAddress": "г. Светлогорск, б-р Олимпийский",
-      "coordinates": { "lat": 54.9389, "lng": 20.1555 }
+      "defaultAddress": "г. Светлогорск, б-р Олимпийский"
+    },
+    {
+      "id": "k8-profitbase",
+      "name": "К8 (Рыбная деревня + Русь)",
+      "url": "https://pb13204.profitbase.ru/export/yandex/fee07f0437018ce5ff1671ee8da079fd",
+      "format": "profitbase",
+      "active": true,
+      "region": "Калининград / Светлогорск"
     }
   ]
 }
