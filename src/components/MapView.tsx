@@ -290,10 +290,12 @@ function PhoneButton() {
 function PropertyCard({ p }: { p: Property }) {
   const [i, setI] = useState(0);
   const imgs = p.images;
+  const href = '#/property/' + encodeURIComponent(p.id);
+  const blockClick = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
   return (
-    <div className="rounded-[24px] bg-white border border-[#E0D7C8] shadow-sm p-3">
+    <a href={href} target="_blank" rel="noopener" className="block rounded-[24px] bg-white border border-[#E0D7C8] shadow-sm p-3 hover:shadow-lg hover:border-[#7A5900] transition cursor-pointer">
       {imgs.length > 0 ? (
-        <button className="relative block w-full rounded-2xl overflow-hidden" onClick={() => setI((i + 1) % imgs.length)} aria-label="Следующее фото">
+        <div className="relative w-full rounded-2xl overflow-hidden">
           <img src={imgs[i]} alt={p.title} className="w-full h-56 object-cover" />
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E1B13]/55 text-white text-xs font-medium">
             {i + 1} из {imgs.length}
@@ -303,12 +305,18 @@ function PropertyCard({ p }: { p: Property }) {
               ))}
             </span>
           </div>
-        </button>
+          {imgs.length > 1 && (
+            <>
+              <button onClick={(e) => { blockClick(e); setI((i - 1 + imgs.length) % imgs.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="l" /></button>
+              <button onClick={(e) => { blockClick(e); setI((i + 1) % imgs.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="r" /></button>
+            </>
+          )}
+        </div>
       ) : (
         <div className="w-full h-40 bg-[#F4EEE3] rounded-2xl flex items-center justify-center text-[#7E7669] text-sm">нет фото</div>
       )}
       <div className="px-1.5 pt-3 pb-1 space-y-2">
-        <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block text-2xl font-bold hover:text-[#7A5900] transition">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
+        <div className="text-2xl font-bold text-[#7A5900]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
         <div className="text-[15px] font-medium">
           {p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} квартира · {p.area > 0 ? String(p.area).replace('.', ',') + ' м²' : ''} {p.floor ? '· ' + p.floor + (p.totalFloors ? '/' + p.totalFloors : '') + ' эт.' : ''}
         </div>
@@ -319,12 +327,11 @@ function PropertyCard({ p }: { p: Property }) {
           {p.price > 0 && <span className="px-3 py-1.5 rounded-lg bg-[#F4EEE3] text-[#4C4639] text-xs font-medium">Ипотека доступна</span>}
         </div>
         <div className="flex gap-2 pt-2">
-          <PhoneButton />
-          <a href={flexbeUrl(p)} target="_blank" rel="noopener" aria-label="Оставить заявку" className="w-12 h-12 rounded-2xl bg-[#ECE5D8] flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition"><ChatIcon /></a>
+          <div onClick={blockClick}><PhoneButton /></div>
+          <a href={flexbeUrl(p)} target="_blank" rel="noopener" aria-label="Оставить заявку" onClick={blockClick} className="w-12 h-12 rounded-2xl bg-[#ECE5D8] flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition"><ChatIcon /></a>
         </div>
-        <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block text-center text-xs text-[#7A5900] pt-1 hover:underline">Подробнее об объекте ↗</a>
       </div>
-    </div>
+    </a>
   );
 }
 
