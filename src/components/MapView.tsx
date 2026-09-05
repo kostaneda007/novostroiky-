@@ -32,16 +32,17 @@ type Group = {
 
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
+const priceSuffix = (min: number) => (min > 0 ? 'от ' + formatMln(min) : 'цена по запросу');
 
 function balloonHtml(g: Group) {
-  const rows = g.items.slice(0, 5).map((p) =>
+  const rows = g.items.filter((p) => p.price > 0).slice(0, 5).map((p) =>
     '<div style="margin:6px 0;border-bottom:1px solid #eee;padding-bottom:6px"><b>' +
     formatPrice(p.price) + '</b><br/><span style="color:#888">' +
     (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') + ' · ' + p.area + ' м²</span></div>'
   ).join('');
   const more = g.items.length > 5 ? '<div style="color:#2563eb;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>' : '';
   return '<div style="max-width:280px;font-family:sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
-    g.items.length + ' квартир · от ' + formatMln(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' +
+    g.items.length + ' квартир · ' + priceSuffix(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' +
     g.address + '</div>' + rows + more + '</div>';
 }
 
@@ -56,14 +57,17 @@ export default function MapView() {
       if (!grouped[p.address]) grouped[p.address] = [];
       grouped[p.address].push(p);
     }
-    return Object.entries(grouped).map(([address, items]) => ({
-      address,
-      items,
-      lat: items.reduce((s, p) => s + p.lat, 0) / items.length,
-      lng: items.reduce((s, p) => s + p.lng, 0) / items.length,
-      minPrice: Math.min(...items.map((p) => p.price).filter((x) => x > 0).concat([0])),
-      feedName: items[0].feedName,
-    }));
+    return Object.entries(grouped).map(([address, items]) => {
+      const pos = items.map((p) => p.price).filter((x) => x > 0);
+      return {
+        address,
+        items,
+        lat: items.reduce((s, p) => s + p.lat, 0) / items.length,
+        lng: items.reduce((s, p) => s + p.lng, 0) / items.length,
+        minPrice: pos.length ? Math.min(...pos) : 0,
+        feedName: items[0].feedName,
+      };
+    });
   }, []);
 
   const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAddress) || null, [groups, selectedAddress]);
@@ -95,7 +99,7 @@ export default function MapView() {
                 key={g.address}
                 geometry={[g.lat, g.lng]}
                 properties={{
-                  iconContent: g.items.length + ' · от ' + formatMln(g.minPrice),
+                  iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice),
                   hintContent: g.address,
                   balloonContent: balloonHtml(g),
                 }}
@@ -200,7 +204,7 @@ function AddressCards({ group, onClose, onSelect }: { group: Group; onClose: () 
       </div>
       <div className="px-5 py-3 border-b border-neutral-800 bg-neutral-900/50">
         <div className="text-amber-400 font-serif text-xl">{group.address}</div>
-        <div className="text-sm text-neutral-400 mt-1">от {formatMln(group.minPrice)} · {group.feedName}</div>
+        <div className="text-sm text-neutral-400 mt-1">{priceSuffix(group.minPrice)} · {group.feedName}</div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {sorted.map((p) => (
@@ -226,7 +230,7 @@ function AddressCards({ group, onClose, onSelect }: { group: Group; onClose: () 
 }
 
 function AddressList({ groups, query, setQuery, onSelect }: { groups: Group[]; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void }) {
-  const sorted = [...groups].sort((a, b) => a.minPrice - b.minPrice);
+  const sorted = [...groups].sort((a, b) => (a.minPrice || Infinity) - (b.minPrice || Infinity));
   return (
     <>
       <div className="px-5 py-4 border-b border-neutral-800">
@@ -241,7 +245,7 @@ function AddressList({ groups, query, setQuery, onSelect }: { groups: Group[]; q
           <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left px-5 py-4 border-b border-neutral-900 hover:bg-neutral-900 transition group">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="text-amber-400 font-medium">{g.items.length} кв. · от {formatMln(g.minPrice)}</div>
+                <div className="text-amber-400 font-medium">{g.items.length} кв. · {priceSuffix(g.minPrice)}</div>
                 <div className="text-sm text-neutral-300 truncate mt-0.5">{g.address}</div>
                 <div className="text-xs text-neutral-500 mt-1">{g.feedName}</div>
               </div>
