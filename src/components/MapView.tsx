@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { YMaps, Map as YMap, Placemark } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
@@ -10,11 +10,62 @@ type Property = {
 
 type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string };
 
-const BASE = import.meta.env.BASE_URL;
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
 const priceSuffix = (min: number) => (min > 0 ? 'от ' + formatMln(min) : 'цена по запросу');
-const propertyHref = (p: Property) => BASE + 'property/' + p.id + '.html';
+const PHONE = '+7 950 673-25-68';
+
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  return hash;
+}
+
+function Chevron({ dir }: { dir: 'l' | 'r' }) {
+  return (
+    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      {dir === 'l' ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
+    </svg>
+  );
+}
+
+function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
+  const [i, setI] = useState(0);
+  if (!images.length) return null;
+  const prev = () => setI((v) => (v - 1 + images.length) % images.length);
+  const next = () => setI((v) => (v + 1) % images.length);
+  return (
+    <div>
+      <div className="relative rounded-[28px] overflow-hidden bg-[#F4EEE3] border border-[#E0D7C8]">
+        <img src={images[i]} alt={alt} className="w-full h-[300px] sm:h-[440px] object-contain" />
+        {images.length > 1 && (
+          <>
+            <button onClick={prev} aria-label="Предыдущее фото" className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition">
+              <Chevron dir="l" />
+            </button>
+            <button onClick={next} aria-label="Следующее фото" className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition">
+              <Chevron dir="r" />
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#1E1B13]/60 text-white text-xs font-medium">{i + 1} / {images.length}</div>
+          </>
+        )}
+      </div>
+      {images.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto mt-3 pb-1">
+          {images.map((u, k) => (
+            <button key={k} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === i ? 'border-[#7A5900]' : 'border-transparent opacity-70 hover:opacity-100')}>
+              <img src={u} alt="" className="w-20 h-14 object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function balloonHtml(g: Group) {
   const rows = g.items.filter((p) => p.price > 0).slice(0, 5).map((p) =>
@@ -22,15 +73,22 @@ function balloonHtml(g: Group) {
     formatPrice(p.price) + '</b><br/><span style="color:#888">' +
     (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') + ' · ' + p.area + ' м²</span></div>'
   ).join('');
-  const more = g.items.length > 5 ? '<div style="color:#2563eb;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>' : '';
-  return '<div style="max-width:280px;font-family:sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
+  const more = g.items.length > 5 ? '<div style="color:#7A5900;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>' : '';
+  return '<div style="max-width:280px;font-family:Roboto,sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
     g.items.length + ' квартир · ' + priceSuffix(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' +
     g.address + '</div>' + rows + more + '</div>';
 }
 
 export default function MapView() {
+  const hash = useHash();
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  const propertyId = hash.indexOf('#/property/') === 0 ? decodeURIComponent(hash.slice(11)) : null;
+  const propertyPage = useMemo(
+    () => (propertyId ? ((properties as Property[]).find((p) => p.id === propertyId) || null) : null),
+    [propertyId]
+  );
 
   const groups = useMemo<Group[]>(() => {
     const grouped: Record<string, Property[]> = {};
@@ -66,9 +124,11 @@ export default function MapView() {
     return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q));
   }, [groups, query]);
 
+  if (propertyPage) return <PropertyPage property={propertyPage} />;
+
   return (
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
-      <div className="flex h-screen bg-neutral-100 text-neutral-900">
+      <div className="flex h-screen bg-[#FDF9F3] text-[#1E1B13]">
         <div className="flex-1 relative">
           <YMap
             defaultState={{ center, zoom: 10 }}
@@ -92,13 +152,13 @@ export default function MapView() {
               />
             ))}
           </YMap>
-          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur border border-neutral-200 shadow-sm rounded-lg px-4 py-3">
-            <h1 className="text-xl font-serif tracking-wide">Новостройки <span className="text-amber-600">39</span></h1>
-            <p className="text-xs text-neutral-500 mt-1">{(properties as Property[]).length} объектов · {groups.length} адресов</p>
+          <div className="absolute top-4 left-4 bg-white rounded-3xl shadow-lg px-5 py-4">
+            <h1 className="text-xl font-medium tracking-wide">Новостройки <span className="text-[#7A5900] font-bold">39</span></h1>
+            <p className="text-xs text-[#4C4639] mt-1">{(properties as Property[]).length} объектов · {groups.length} адресов</p>
           </div>
         </div>
 
-        <aside className="w-[480px] bg-white border-l border-neutral-200 flex flex-col">
+        <aside className="w-[480px] bg-[#F4EEE3] border-l border-[#E0D7C8] flex flex-col">
           {selectedGroup ? (
             <AddressCards group={selectedGroup} onClose={() => setSelectedAddress(null)} />
           ) : (
@@ -110,33 +170,83 @@ export default function MapView() {
   );
 }
 
+function PropertyPage({ property }: { property: Property }) {
+  return (
+    <div className="min-h-screen bg-[#FDF9F3] text-[#1E1B13]">
+      <header className="sticky top-0 z-10 bg-[#FDF9F3]/95 backdrop-blur border-b border-[#E0D7C8]">
+        <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
+          <a href="#/" className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ECE5D8] transition text-[#4C4639]" aria-label="К карте">
+            <Chevron dir="l" />
+          </a>
+          <div className="text-lg font-medium">Новостройки <span className="text-[#7A5900] font-bold">39</span></div>
+          <div className="w-11" />
+        </div>
+      </header>
+      <main className="max-w-4xl mx-auto px-5 py-6 space-y-5">
+        <PhotoSlider images={property.images} alt={property.title} />
+        <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6">
+          <div className="text-[#7A5900] font-bold text-3xl mb-2">{property.price > 0 ? formatPrice(property.price) : 'Цена по запросу'}</div>
+          <div className="text-lg text-[#1E1B13]">{property.address}</div>
+          <div className="text-sm text-[#4C4639] mt-1">{property.feedName} · {property.seller}</div>
+          <div className="grid grid-cols-3 gap-3 mt-5">
+            <Stat label="Комнат" value={property.rooms === 0 ? 'Студия' : String(property.rooms)} />
+            <Stat label="Площадь" value={property.area > 0 ? property.area + ' м²' : '—'} />
+            <Stat label="Этаж" value={property.floor ? property.floor + (property.totalFloors ? '/' + property.totalFloors : '') : '—'} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+            <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="h-13 py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg transition">
+              Позвонить: {PHONE}
+            </a>
+            <a href={'https://coastal-estate.flexbe.ru/?property_id=' + property.id + '&price=' + property.price + '&address=' + encodeURIComponent(property.address)} target="_blank" rel="noopener" className="py-3.5 rounded-full bg-[#FFDEA6] text-[#261900] font-medium text-center hover:shadow-lg transition">
+              Оставить заявку на просмотр
+            </a>
+          </div>
+        </div>
+        {property.description && (
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-3">Описание</h3>
+            <p className="text-[#1E1B13] leading-relaxed whitespace-pre-line">{property.description}</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#F4EEE3] p-4">
+      <div className="text-xs text-[#4C4639] uppercase tracking-wide">{label}</div>
+      <div className="text-lg font-medium mt-1">{value}</div>
+    </div>
+  );
+}
+
 function AddressCards({ group, onClose }: { group: Group; onClose: () => void }) {
   const sorted = [...group.items].sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
   return (
     <>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
-        <button onClick={onClose} className="text-neutral-500 hover:text-amber-600 transition text-sm">← Все адреса</button>
-        <span className="text-xs text-neutral-400">{group.items.length} квартир</span>
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E0D7C8]">
+        <button onClick={onClose} className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ECE5D8] transition text-[#4C4639]" aria-label="Назад">
+          <Chevron dir="l" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{group.address}</div>
+          <div className="text-xs text-[#4C4639]">{priceSuffix(group.minPrice)} · {group.items.length} квартир</div>
+        </div>
       </div>
-      <div className="px-5 py-3 border-b border-neutral-200 bg-neutral-50">
-        <div className="text-amber-600 font-serif text-xl">{group.address}</div>
-        <div className="text-sm text-neutral-500 mt-1">{priceSuffix(group.minPrice)} · {group.feedName}</div>
-      </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {sorted.map((p) => (
-          <a key={p.id} href={propertyHref(p)} target="_blank" rel="noopener" className="block w-full text-left px-5 py-4 border-b border-neutral-100 hover:bg-neutral-50 transition">
-            <div className="flex gap-3">
-              {p.images[0] ? (
-                <img src={p.images[0]} alt="" className="w-24 h-20 object-cover rounded-lg shrink-0 border border-neutral-200" />
-              ) : (
-                <div className="w-24 h-20 bg-neutral-100 rounded-lg shrink-0 flex items-center justify-center text-neutral-400 text-xs">нет фото</div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-amber-600 font-semibold">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
-                <div className="text-sm text-neutral-700 mt-0.5">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area > 0 ? p.area + ' м²' : ''} {p.floor ? '· эт. ' + p.floor : ''}</div>
-                <div className="text-xs text-neutral-400 mt-1 truncate">{p.title}</div>
-              </div>
-              <span className="text-neutral-300">↗</span>
+          <a key={p.id} href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="flex gap-3 rounded-[20px] bg-white border border-[#E0D7C8] p-3 hover:shadow-md transition">
+            {p.images[0] ? (
+              <img src={p.images[0]} alt="" className="w-24 h-24 object-cover rounded-2xl shrink-0" />
+            ) : (
+              <div className="w-24 h-24 bg-[#F4EEE3] rounded-2xl shrink-0 flex items-center justify-center text-[#7E7669] text-xs">нет фото</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-[#7A5900] font-bold">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
+              <div className="text-sm text-[#1E1B13] mt-0.5">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area > 0 ? p.area + ' м²' : ''} {p.floor ? '· эт. ' + p.floor : ''}</div>
+              <div className="text-xs text-[#4C4639] mt-1 truncate">{p.title}</div>
             </div>
           </a>
         ))}
@@ -149,24 +259,19 @@ function AddressList({ groups, query, setQuery, onSelect }: { groups: Group[]; q
   const sorted = [...groups].sort((a, b) => (a.minPrice || Infinity) - (b.minPrice || Infinity));
   return (
     <>
-      <div className="px-5 py-4 border-b border-neutral-200">
-        <h2 className="text-lg font-serif">Все адреса</h2>
-        <p className="text-xs text-neutral-400 mt-1">{groups.length} адресов</p>
+      <div className="px-5 pt-5 pb-3">
+        <h2 className="text-xl font-medium">Все адреса</h2>
+        <p className="text-xs text-[#4C4639] mt-1">{groups.length} адресов</p>
       </div>
-      <div className="px-5 py-3 border-b border-neutral-200">
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full bg-white border border-neutral-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
+      <div className="px-4 pb-3">
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full h-13 py-3 px-5 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {sorted.map((g) => (
-          <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left px-5 py-4 border-b border-neutral-100 hover:bg-neutral-50 transition group">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="text-amber-600 font-semibold">{g.items.length} кв. · {priceSuffix(g.minPrice)}</div>
-                <div className="text-sm text-neutral-700 truncate mt-0.5">{g.address}</div>
-                <div className="text-xs text-neutral-400 mt-1">{g.feedName}</div>
-              </div>
-              <span className="text-neutral-300 group-hover:text-amber-600 transition">→</span>
-            </div>
+          <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left rounded-[20px] bg-white border border-[#E0D7C8] px-4 py-3 hover:shadow-md transition">
+            <div className="text-[#7A5900] font-bold">{g.items.length} кв. · {priceSuffix(g.minPrice)}</div>
+            <div className="text-sm text-[#1E1B13] truncate mt-0.5">{g.address}</div>
+            <div className="text-xs text-[#4C4639] mt-0.5">{g.feedName}</div>
           </button>
         ))}
       </div>
