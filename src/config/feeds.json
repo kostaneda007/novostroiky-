@@ -1,0 +1,13 @@
+{
+  "feeds": [
+    {
+      "id": "ksi-svetlogorsk",
+      "name": "КалининградСтройИнвест",
+      "url": "https://kaliningradstroyinvest.ru/avito_xml.php",
+      "active": true,
+      "region": "Светлогорск",
+      "defaultAddress": "г. Светлогорск, б-р Олимпийский",
+      "coordinates": { "lat": 54.9389, "lng": 20.1555 }
+    }
+  ]
+}
