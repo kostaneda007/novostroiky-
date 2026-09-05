@@ -192,7 +192,7 @@ async function main() {
     const idx = addrCounters[p.address];
     const base = cache[p.address] || CITY_COORDS['светлогорск'];
     const angle = idx * 2.399;
-    const radius = 0.0004 * Math.sqrt(idx);
+    const radius = 0.00012 * Math.sqrt(idx);
     p.lat = Number((base.lat + radius * Math.sin(angle)).toFixed(6));
     p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
