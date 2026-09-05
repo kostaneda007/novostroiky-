@@ -50,7 +50,7 @@ function Header({ hash }: { hash: string }) {
   const [open, setOpen] = useState(false);
   const nav = [
     { h: '#/', l: 'Карта' }, { h: '#/complexes', l: 'ЖК' }, { h: '#/analytics', l: 'Аналитика' },
-    { h: '#/budget', l: 'Бюджет' }, { h: '#/calc', l: 'Калькулятор' }, { h: '#/about', l: 'О нас' },
+    { h: '#/budget', l: 'Бюджет' }, { h: '#/calc', l: 'Калькулятор' }, { h: '#/compare', l: 'Сравнить' }, { h: '#/about', l: 'О нас' },
   ];
   const act = (h: string) => (h === '#/' ? (hash === '#/' || hash === '' || hash.indexOf('#/property') === 0) : hash.indexOf(h) === 0);
   return (
@@ -112,6 +112,90 @@ function FavButton({ id }: { id: string }) {
   return <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFav(id); }} aria-label="В избранное" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#7A5900] border-[#7A5900] text-white' : 'bg-white border-[#E0D7C8] text-[#7A5900] hover:border-[#7A5900]')}><HeartIcon filled={on} /></button>;
 }
 
+const CMP_KEY = 'novostroiky39_cmp';
+const getCmp = (): string[] => { try { return JSON.parse(localStorage.getItem(CMP_KEY) || '[]'); } catch { return []; } };
+const toggleCmp = (id: string) => {
+  const f = getCmp(); const i = f.indexOf(id);
+  if (i >= 0) f.splice(i, 1);
+  else { if (f.length >= 3) { alert('Можно сравнить не более 3 квартир'); return; } f.push(id); }
+  localStorage.setItem(CMP_KEY, JSON.stringify(f));
+  window.dispatchEvent(new Event('cmp-changed'));
+};
+function useCmp(): string[] {
+  const [f, setF] = useState<string[]>(getCmp());
+  useEffect(() => { const on = () => setF(getCmp()); window.addEventListener('cmp-changed', on); window.addEventListener('storage', on); return () => { window.removeEventListener('cmp-changed', on); window.removeEventListener('storage', on); }; }, []);
+  return f;
+}
+
+function CompareButton({ id }: { id: string }) {
+  const cmp = useCmp(); const on = cmp.includes(id);
+  return (
+    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleCmp(id); }} aria-label="Сравнить" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#0369A1] border-[#0369A1] text-white' : 'bg-white border-[#E0D7C8] text-[#0369A1] hover:border-[#0369A1]')}>
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5M8 21H3v-5M21 3l-7 7M3 21l7-7" /></svg>
+    </button>
+  );
+}
+
+function CompareBar() {
+  const cmp = useCmp();
+  if (cmp.length < 2) return null;
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white border border-[#E0D7C8] shadow-lg rounded-full px-4 py-2">
+      <span className="text-sm text-[#4C4639]">Выбрано: {cmp.length}</span>
+      <a href="#/compare" className="px-4 py-2 rounded-full bg-[#7A5900] text-white text-sm font-medium">Сравнить</a>
+      <button onClick={() => { localStorage.setItem(CMP_KEY, '[]'); window.dispatchEvent(new Event('cmp-changed')); }} className="text-sm text-[#4C4639] hover:text-[#7A5900]">Сбросить</button>
+    </div>
+  );
+}
+
+function ComparePage() {
+  const cmp = useCmp();
+  const items = useMemo(() => (properties as Property[]).filter((p) => cmp.includes(p.id)), [cmp]);
+  const rows: [string, (p: Property) => string][] = [
+    ['Комнат', (p) => (p.rooms === 0 ? 'Студия' : String(p.rooms))],
+    ['Площадь', (p) => (p.area > 0 ? p.area + ' м²' : '—')],
+    ['Этаж', (p) => (p.floor ? p.floor + (p.totalFloors ? '/' + p.totalFloors : '') : '—')],
+    ['ЖК', (p) => (p.complex ? '«' + p.complex + '»' : '—')],
+    ['Адрес', (p) => p.address],
+    ['До моря', (p) => (p.sea != null ? seaLabel(p.sea) : '—')],
+    ['Цена за м²', (p) => (p.price > 0 && p.area > 0 ? new Intl.NumberFormat('ru-RU').format(Math.round(p.price / p.area)) + ' ₽' : '—')],
+    ['Застройщик', (p) => p.feedName],
+  ];
+  return (
+    <main className="max-w-5xl mx-auto px-5 py-6">
+      <h1 className="text-2xl font-serif font-medium mb-4">Сравнение квартир</h1>
+      {items.length < 2 ? (
+        <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-10 text-center text-[#4C4639]">Отметьте 2–3 квартиры синей кнопкой сравнения на карточках — и они появятся здесь в таблице.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-[28px] bg-white border border-[#E0D7C8]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left p-4 text-[#4C4639] font-medium w-36">Параметр</th>
+                {items.map((p) => (
+                  <th key={p.id} className="p-4 align-top min-w-[220px]">
+                    {p.images[0] && <img src={p.images[0]} alt="" className="w-full h-32 object-cover rounded-xl mb-2" />}
+                    <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block font-bold text-[#7A5900] hover:underline">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
+                    <button onClick={() => toggleCmp(p.id)} className="text-xs text-[#4C4639] hover:text-red-600 mt-1">убрать ✕</button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([l, fn]) => (
+                <tr key={l} className="border-t border-[#F4EEE3]">
+                  <td className="p-4 text-[#4C4639]">{l}</td>
+                  {items.map((p) => <td key={p.id} className="p-4 text-center">{fn(p)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
+  );
+}
+
 function PhoneButton() {
   const [show, setShow] = useState(false);
   return show
@@ -155,7 +239,7 @@ function PropertyCard({ p }: { p: Property }) {
       <div className="px-1.5 pt-3 pb-1 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div className="text-2xl font-bold text-[#7A5900]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
-          <FavButton id={p.id} />
+          <div className="flex gap-1.5"><FavButton id={p.id} /><CompareButton id={p.id} /></div>
         </div>
         <div className="text-[15px] font-medium">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} квартира · {p.area > 0 ? String(p.area).replace('.', ',') + ' м²' : ''} {p.floor ? '· ' + p.floor + (p.totalFloors ? '/' + p.totalFloors : '') + ' эт.' : ''}</div>
         <div className="text-sm text-[#4C4639]">{p.complex ? 'ЖК «' + p.complex + '» · ' : ''}{p.address}</div>
@@ -476,6 +560,7 @@ export default function MapView() {
   else if (hash === '#/analytics') content = <AnalyticsPage />;
   else if (hash === '#/budget') content = <BudgetPage />;
   else if (hash === '#/about') content = <AboutPage />;
+  else if (hash === '#/compare') content = <ComparePage />;
   else if (propertyPage) content = <PropertyPage property={propertyPage} />;
   else { content = <MapScreen />; isMap = true; }
 
@@ -483,6 +568,7 @@ export default function MapView() {
     <div className="min-h-screen bg-[#FDF9F3] text-[#1E1B13] flex flex-col">
       <Header hash={hash} />
       <div className={isMap ? 'flex-1 min-h-0' : ''}>{content}</div>
+      <CompareBar />
     </div>
   );
 }
