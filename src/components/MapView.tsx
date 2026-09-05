@@ -64,34 +64,38 @@ function Description({ text }: { text: string }) {
 }
 
 function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
+  const [bad, setBad] = useState<Record<string, boolean>>({});
+  const good = images.filter((u) => !bad[u]);
   const [i, setI] = useState(0);
-  if (!images.length) return null;
-  const prev = () => setI((v) => (v - 1 + images.length) % images.length);
-  const next = () => setI((v) => (v + 1) % images.length);
+  if (!good.length) return null;
+  const idx = i % good.length;
+  const prev = () => setI((idx - 1 + good.length) % good.length);
+  const next = () => setI((idx + 1) % good.length);
+  const markBad = (u: string) => setBad((b) => (b[u] ? b : { ...b, [u]: true }));
   return (
     <div>
       <div className="relative rounded-[28px] overflow-hidden bg-[#F4EEE3] border border-[#E0D7C8]">
-        <img src={images[i]} alt={alt} className="w-full h-[300px] sm:h-[440px] object-contain" />
-        {images.length > 1 && (
+        <img src={good[idx]} alt={alt} onError={() => markBad(good[idx])} className="w-full h-[300px] sm:h-[440px] object-contain" />
+        {good.length > 1 && (
           <>
             <button onClick={prev} aria-label="Предыдущее фото" className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition"><Chevron dir="l" /></button>
             <button onClick={next} aria-label="Следующее фото" className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center text-[#1E1B13] hover:bg-[#FFDEA6] transition"><Chevron dir="r" /></button>
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E1B13]/55 text-white text-xs font-medium">
-              {i + 1} из {images.length}
+              {idx + 1} из {good.length}
               <span className="flex gap-1">
-                {images.slice(0, 4).map((_, k) => (
-                  <span key={k} className={'h-1.5 rounded-full ' + (k === i ? 'w-4 bg-white' : 'w-1.5 bg-white/50')} />
+                {good.slice(0, 4).map((_, k) => (
+                  <span key={k} className={'h-1.5 rounded-full ' + (k === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/50')} />
                 ))}
               </span>
             </div>
           </>
         )}
       </div>
-      {images.length > 1 && (
+      {good.length > 1 && (
         <div className="flex gap-2 overflow-x-auto mt-3 pb-1">
-          {images.map((u, k) => (
-            <button key={k} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === i ? 'border-[#7A5900]' : 'border-transparent opacity-70 hover:opacity-100')}>
-              <img src={u} alt="" className="w-20 h-14 object-cover" />
+          {good.map((u, k) => (
+            <button key={u} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === idx ? 'border-[#7A5900]' : 'border-transparent opacity-70 hover:opacity-100')}>
+              <img src={u} alt="" onError={() => markBad(u)} className="w-20 h-14 object-cover" />
             </button>
           ))}
         </div>
@@ -194,6 +198,8 @@ export default function MapView() {
     return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q) || (g.complex || '').toLowerCase().includes(q));
   }, [groups, query]);
 
+  if (hash === '#/calc') return <MortgageCalculator />;
+
   if (propertyPage) return <PropertyPage property={propertyPage} />;
 
   return (
@@ -225,6 +231,7 @@ export default function MapView() {
           <div className="absolute top-4 left-4 bg-white rounded-3xl shadow-lg px-5 py-4">
             <h1 className="text-xl font-medium tracking-wide">Новостройки <span className="text-[#7A5900] font-bold">39</span></h1>
             <p className="text-xs text-[#4C4639] mt-1">{filteredProps.length} объектов · {groups.length} адресов</p>
+            <a href="#/calc" className="inline-block mt-2 text-xs font-medium text-[#7A5900] hover:underline">Ипотечный калькулятор →</a>
           </div>
         </div>
 
@@ -374,7 +381,7 @@ function SimilarProperties({ current }: { current: Property }) {
         {similar.map((p) => (
           <a key={p.id} href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="flex gap-3 rounded-2xl bg-[#F4EEE3] p-3 hover:shadow-md transition">
             {p.images[0] ? (
-              <img src={p.images[0]} alt="" className="w-24 h-24 object-cover rounded-xl shrink-0" />
+              <img onError={(e) => { e.currentTarget.style.display = 'none'; }} src={p.images[0]} alt="" className="w-24 h-24 object-cover rounded-xl shrink-0" />
             ) : (
               <div className="w-24 h-24 bg-white rounded-xl shrink-0 flex items-center justify-center text-[#7E7669] text-xs">нет фото</div>
             )}
@@ -480,5 +487,61 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
         {sorted.length === 0 && <div className="text-center text-sm text-[#4C4639] py-10">Ничего не найдено. Измените фильтры.</div>}
       </div>
     </>
+  );
+}
+
+function MortgageCalculator() {
+  const [price, setPrice] = useState(6000000);
+  const [down, setDown] = useState(20);
+  const [years, setYears] = useState(20);
+  const [rate, setRate] = useState(18);
+  const principal = price * (1 - down / 100);
+  const m = rate / 100 / 12;
+  const n = years * 12;
+  const pay = m > 0 ? (principal * m) / (1 - Math.pow(1 + m, -n)) : principal / n;
+  const fmt = (x: number) => new Intl.NumberFormat('ru-RU').format(Math.round(x));
+  return (
+    <div className="min-h-screen bg-[#FDF9F3] text-[#1E1B13]">
+      <header className="sticky top-0 z-10 bg-[#FDF9F3]/95 backdrop-blur border-b border-[#E0D7C8]">
+        <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
+          <a href="#/" className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ECE5D8] transition text-[#4C4639]" aria-label="К карте"><Chevron dir="l" /></a>
+          <div className="text-lg font-medium">Ипотечный <span className="text-[#7A5900] font-bold">калькулятор</span></div>
+          <div className="w-11" />
+        </div>
+      </header>
+      <main className="max-w-3xl mx-auto px-5 py-6">
+        <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6 space-y-5">
+          <div>
+            <label className="text-sm text-[#4C4639]">Стоимость квартиры: <b>{fmt(price)} ₽</b></label>
+            <input type="range" min={2000000} max={50000000} step={100000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full" />
+          </div>
+          <div>
+            <label className="text-sm text-[#4C4639]">Первоначальный взнос: <b>{down}% ({fmt(price * down / 100)} ₽)</b></label>
+            <input type="range" min={0} max={90} step={5} value={down} onChange={(e) => setDown(Number(e.target.value))} className="w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-[#4C4639]">Срок, лет</label>
+              <input type="number" min={1} max={30} value={years} onChange={(e) => setYears(Number(e.target.value))} className="mt-1 w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] focus:outline-none focus:border-[#7A5900]" />
+            </div>
+            <div>
+              <label className="text-sm text-[#4C4639]">Ставка, %</label>
+              <select value={rate} onChange={(e) => setRate(Number(e.target.value))} className="mt-1 w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] focus:outline-none focus:border-[#7A5900]">
+                <option value={18}>Обычная 18%</option>
+                <option value={6}>Семейная 6%</option>
+                <option value={6}>IT 6%</option>
+                <option value={2}>Льготная 2%</option>
+              </select>
+            </div>
+          </div>
+          <div className="rounded-2xl bg-[#FFDEA6] p-5 text-center">
+            <div className="text-sm text-[#261900]">Платёж в месяц</div>
+            <div className="text-3xl font-bold text-[#261900]">{fmt(pay)} ₽</div>
+            <div className="text-xs text-[#261900]/70 mt-1">Кредит {fmt(principal)} ₽ · переплата {fmt(pay * n - principal)} ₽</div>
+          </div>
+          <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="block w-full py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg transition">Оставить заявку на ипотеку</a>
+        </div>
+      </main>
+    </div>
   );
 }
