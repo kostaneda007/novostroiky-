@@ -46,6 +46,7 @@ function HeartIcon({ filled }: { filled: boolean }) {
 }
 
 function Header({ hash }: { hash: string }) {
+  const cmp = useCmp();
   const favs = useFavs();
   const [open, setOpen] = useState(false);
   const nav = [
