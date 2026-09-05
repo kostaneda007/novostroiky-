@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { YMaps, Map, Placemark, Clusterer } from '@pbe/react-yandex-maps';
+import { useMemo, useState } from 'react';
+import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
 type Property = {
@@ -18,42 +18,96 @@ type Property = {
   images: string[];
 };
 
+type Group = {
+  address: string;
+  items: Property[];
+  lat: number;
+  lng: number;
+  minPrice: number;
+};
+
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 
+const formatMln = (price: number) =>
+  (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
+
+function balloonHtml(g: Group) {
+  const rows = g.items
+    .slice(0, 5)
+    .map(
+      (p) =>
+        '<div style="margin:6px 0;border-bottom:1px solid #eee;padding-bottom:6px"><b>' +
+        formatPrice(p.price) +
+        '</b><br/><span style="color:#888">' +
+        (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') +
+        ' · ' + p.area + ' м² · эт. ' + p.floor +
+        '</span></div>'
+    )
+    .join('');
+  const more =
+    g.items.length > 5
+      ? '<div style="color:#2563eb;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>'
+      : '';
+  return (
+    '<div style="max-width:280px;font-family:sans-serif">' +
+    '<div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
+    g.items.length + ' квартир · от ' + formatMln(g.minPrice) + '</div>' +
+    '<div style="color:#555;margin-bottom:8px">' + g.address + '</div>' +
+    rows + more + '</div>'
+  );
+}
+
 export default function MapView() {
   const [selected, setSelected] = useState<Property | null>(null);
+
+  const groups = useMemo<Group[]>(() => {
+    const map = new Map<string, Property[]>();
+    for (const p of properties as Property[]) {
+      const arr = map.get(p.address);
+      if (arr) arr.push(p);
+      else map.set(p.address, [p]);
+    }
+    return Array.from(map.entries()).map(([address, items]) => ({
+      address,
+      items,
+      lat: items.reduce((s, p) => s + p.lat, 0) / items.length,
+      lng: items.reduce((s, p) => s + p.lng, 0) / items.length,
+      minPrice: Math.min(...items.map((p) => p.price)),
+    }));
+  }, []);
+
+  const center = useMemo(() => {
+    if (groups.length === 0) return [54.9392, 20.1405] as [number, number];
+    const lat = groups.reduce((s, g) => s + g.lat, 0) / groups.length;
+    const lng = groups.reduce((s, g) => s + g.lng, 0) / groups.length;
+    return [lat, lng] as [number, number];
+  }, [groups]);
 
   return (
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex h-screen bg-neutral-950 text-neutral-100">
         <div className="flex-1 relative">
           <Map
-            defaultState={{ center: [54.9389, 20.1555], zoom: 12 }}
+            defaultState={{ center, zoom: 11 }}
             options={{ suppressMapOpenBlock: true }}
             style={{ width: '100%', height: '100%' }}
           >
-            <Clusterer
-              options={{
-                preset: 'islands#invertedVioletClusterIcons',
-                groupByCoordinates: false,
-              }}
-            >
-              {(properties as Property[]).map((p) => (
-                <Placemark
-                  key={p.id}
-                  geometry={[p.lat, p.lng]}
-                  properties={{
-                    hintContent: `${formatPrice(p.price)} · ${p.address}`,
-                  }}
-                  options={{
-                    preset: 'islands#violetCircleIcon',
-                    iconColor: '#d4af37',
-                  }}
-                  onClick={() => setSelected(p)}
-                />
-              ))}
-            </Clusterer>
+            {groups.map((g) => (
+              <Placemark
+                key={g.address}
+                geometry={[g.lat, g.lng]}
+                properties={{
+                  iconContent: g.items.length + ' · от ' + formatMln(g.minPrice),
+                  hintContent: g.address,
+                  balloonContent: balloonHtml(g),
+                }}
+                options={{
+                  preset: 'islands#blueStretchyIcon',
+                  balloonMaxWidth: 320,
+                }}
+              />
+            ))}
           </Map>
 
           <div className="absolute top-4 left-4 bg-neutral-950/80 backdrop-blur-sm border border-neutral-800 rounded-lg px-4 py-3">
@@ -61,7 +115,7 @@ export default function MapView() {
               Coastal <span className="text-amber-400">Estate</span>
             </h1>
             <p className="text-xs text-neutral-400 mt-1">
-              Элитная недвижимость на побережье · {properties.length} объектов
+              Элитная недвижимость на побережье · {properties.length} объектов · {groups.length} адресов
             </p>
           </div>
         </div>
@@ -96,7 +150,7 @@ function PropertyDetail({ property, onClose }: { property: Property; onClose: ()
         </div>
         <div className="grid grid-cols-3 gap-3">
           <Stat label="Комнат" value={property.rooms === 0 ? 'Студия' : String(property.rooms)} />
-          <Stat label="Площадь" value={`${property.area} м²`} />
+          <Stat label="Площадь" value={property.area + ' м²'} />
           <Stat label="Этаж" value={property.floor || '—'} />
         </div>
         <div>
@@ -106,7 +160,7 @@ function PropertyDetail({ property, onClose }: { property: Property; onClose: ()
           </p>
         </div>
         <a
-          href={`https://coastal-estate.flexbe.ru/?property_id=${property.id}&price=${property.price}`}
+          href={'https://coastal-estate.flexbe.ru/?property_id=' + property.id + '&price=' + property.price}
           target="_blank"
           rel="noopener"
           className="block w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold text-center py-3 rounded-lg transition"
@@ -130,7 +184,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function PropertyList({ onSelect }: { onSelect: (p: Property) => void }) {
   const [query, setQuery] = useState('');
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(100_000_000);
+  const [maxPrice, setMaxPrice] = useState(100000000);
 
   const filtered = (properties as Property[]).filter((p) => {
     const matchesQuery = !query || p.address.toLowerCase().includes(query.toLowerCase());
@@ -162,8 +216,8 @@ function PropertyList({ onSelect }: { onSelect: (p: Property) => void }) {
           <input
             type="number"
             placeholder="До"
-            value={maxPrice === 100_000_000 ? '' : maxPrice}
-            onChange={(e) => setMaxPrice(Number(e.target.value) || 100_000_000)}
+            value={maxPrice === 100000000 ? '' : maxPrice}
+            onChange={(e) => setMaxPrice(Number(e.target.value) || 100000000)}
             className="flex-1 bg-neutral-900 border border-neutral-800 rounded px-2 py-1.5"
           />
         </div>
@@ -180,7 +234,7 @@ function PropertyList({ onSelect }: { onSelect: (p: Property) => void }) {
                 <div className="text-amber-400 font-medium">{formatPrice(p.price)}</div>
                 <div className="text-sm text-neutral-300 truncate mt-0.5">{p.address}</div>
                 <div className="text-xs text-neutral-500 mt-1">
-                  {p.rooms === 0 ? 'Студия' : `${p.rooms} комн.`} · {p.area} м²
+                  {p.rooms === 0 ? 'Студия' : p.rooms + ' комн.'} · {p.area} м²
                 </div>
               </div>
               <span className="text-neutral-600 group-hover:text-amber-400 transition">→</span>
