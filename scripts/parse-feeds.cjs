@@ -3,6 +3,7 @@ const path = require('path');
 const { parseString } = require('xml2js');
 
 const feedsConfig = require('../src/config/feeds.json');
+const MANUAL = require('./address-coords.json');
 const API_KEY = '5c024328-1ece-4be5-8464-12af0e286a90';
 const CACHE_FILE = path.join(__dirname, 'geocode-cache.json');
 const OUT_FILE = path.join(__dirname, '../src/data/properties.json');
@@ -171,6 +172,7 @@ async function main() {
 
   let geocoded = 0, fallback = 0;
   for (const addr of unique) {
+    if (MANUAL[addr]) { cache[addr] = MANUAL[addr]; geocoded++; continue; }
     if (cache[addr]) { geocoded++; continue; }
     let coords = await geocode(addr);
     if (coords) {
