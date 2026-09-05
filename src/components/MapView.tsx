@@ -324,27 +324,31 @@ function PhoneButton() {
 }
 
 function PropertyCard({ p }: { p: Property }) {
+  const [bad, setBad] = useState<Record<string, boolean>>({});
+  const good = p.images.filter((u) => !bad[u]);
   const [i, setI] = useState(0);
-  const imgs = p.images;
   const href = '#/property/' + encodeURIComponent(p.id);
   const blockClick = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
+  const markBad = (u: string) => setBad((b) => (b[u] ? b : { ...b, [u]: true }));
+  const idx = good.length ? i % good.length : 0;
+  const niceTitle = p.title && !/продаж|аренд/i.test(p.title) ? p.title : '';
   return (
     <a href={href} target="_blank" rel="noopener" className="block rounded-[24px] bg-white border border-[#E0D7C8] shadow-sm p-3 hover:shadow-lg hover:border-[#7A5900] transition cursor-pointer">
-      {imgs.length > 0 ? (
-        <div className="relative w-full rounded-2xl overflow-hidden">
-          <img src={imgs[i]} alt={p.title} className="w-full h-56 object-cover" />
+      {good.length > 0 ? (
+        <div className="relative w-full rounded-2xl overflow-hidden bg-[#F4EEE3]">
+          <img src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-cover" />
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1E1B13]/55 text-white text-xs font-medium">
-            {i + 1} из {imgs.length}
+            {idx + 1} из {good.length}
             <span className="flex gap-1">
-              {imgs.slice(0, 4).map((_, k) => (
-                <span key={k} className={'h-1.5 rounded-full ' + (k === i ? 'w-4 bg-white' : 'w-1.5 bg-white/50')} />
+              {good.slice(0, 4).map((_, k) => (
+                <span key={k} className={'h-1.5 rounded-full ' + (k === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/50')} />
               ))}
             </span>
           </div>
-          {imgs.length > 1 && (
+          {good.length > 1 && (
             <>
-              <button onClick={(e) => { blockClick(e); setI((i - 1 + imgs.length) % imgs.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="l" /></button>
-              <button onClick={(e) => { blockClick(e); setI((i + 1) % imgs.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="r" /></button>
+              <button onClick={(e) => { blockClick(e); setI((idx - 1 + good.length) % good.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="l" /></button>
+              <button onClick={(e) => { blockClick(e); setI((idx + 1) % good.length); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-white"><Chevron dir="r" /></button>
             </>
           )}
         </div>
@@ -357,6 +361,7 @@ function PropertyCard({ p }: { p: Property }) {
           {p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} квартира · {p.area > 0 ? String(p.area).replace('.', ',') + ' м²' : ''} {p.floor ? '· ' + p.floor + (p.totalFloors ? '/' + p.totalFloors : '') + ' эт.' : ''}
         </div>
         <div className="text-sm text-[#4C4639]">{p.complex ? 'ЖК «' + p.complex + '» · ' : ''}{p.address}</div>
+        {niceTitle && <div className="text-xs text-[#4C4639] truncate">{niceTitle}</div>}
         <div className="flex flex-wrap gap-1.5 pt-1">
           <span className="px-3 py-1.5 rounded-lg bg-[#E6F4EA] text-[#1E7E34] text-xs font-medium">От застройщика</span>
           <span className="px-3 py-1.5 rounded-lg bg-[#FFF3E0] text-[#B26A00] text-xs font-medium">Без комиссии</span>
