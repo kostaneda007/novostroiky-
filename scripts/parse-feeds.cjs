@@ -21,18 +21,57 @@ const CITY_COORDS = {
   'зеленоградск': { lat: 54.9601, lng: 20.4742 },
 };
 
-const pick = (obj, keys, fallback = '') => {
-  for (const key of keys) {
-    const raw = obj ? obj[key] : undefined;
-    if (raw === undefined || raw === null) continue;
-    const val = typeof raw === 'object' ? (raw._ !== undefined ? raw._ : '') : raw;
-    if (String(val).trim() !== '') return val;
-  }
-  return fallback;
-};
-
 const clean = (text) =>
   String(text).replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+const parseRooms = (value) => {
+  const str = String(value).toLowerCase();
+  if (str.includes('студ')) return 0;
+  const num = parseInt(str, 10);
+  return isNaN(num) ? 0 : num;
+};
+
+function deep(node, keys, depth) {
+  if (!node || typeof node !== 'object' || depth > 4) return '';
+  for (const k of keys) {
+    const v = node[k];
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'object') {
+      if (v._ !== undefined && String(v._).trim()) return String(v._).trim();
+    } else if (String(v).trim()) {
+      return String(v).trim();
+    }
+  }
+  for (const k of Object.keys(node)) {
+    const v = node[k];
+    if (v && typeof v === 'object') {
+      const found = deep(v, keys, depth + 1);
+      if (found) return found;
+    }
+  }
+  return '';
+}
+
+function getImages(node) {
+  const out = [];
+  const walk = (n, d) => {
+    if (!n || typeof n !== 'object' || d > 4) return;
+    for (const k of Object.keys(n)) {
+      if (['image', 'Image', 'photo', 'Photo', 'images', 'Images'].includes(k)) {
+        const v = n[k];
+        const list = Array.isArray(v) ? v : [v];
+        list.forEach((i) => {
+          const u = typeof i === 'object' ? ((i && i._) || (i && i.$ && i.$.url) || '') : i;
+          if (u && /^https?:/.test(String(u))) out.push(String(u).trim());
+        });
+      } else if (typeof n[k] === 'object') {
+        walk(n[k], d + 1);
+      }
+    }
+  };
+  walk(node, 0);
+  return out;
+}
 
 const findAds = (node) => {
   if (!node || typeof node !== 'object') return [];
@@ -55,19 +94,6 @@ const findOffers = (node) => {
   return [];
 };
 
-const getImages = (ad) => {
-  const raw = ad.Image ?? ad.Photo ?? ad.Images ?? [];
-  const list = Array.isArray(raw) ? raw : [raw];
-  return list.map((i) => (typeof i === 'object' ? (i?._ ?? i?.$?.url ?? '') : i)).filter(Boolean);
-};
-
-const parseRooms = (value) => {
-  const str = String(value).toLowerCase();
-  if (str.includes('студ')) return 0;
-  const num = parseInt(str, 10);
-  return isNaN(num) ? 0 : num;
-};
-
 function findAddress(node, depth) {
   if (!node || typeof node !== 'object' || depth > 3) return '';
   for (const key of ['Address', 'address', 'FullAddress', 'LocationAddress']) {
@@ -78,7 +104,7 @@ function findAddress(node, depth) {
   for (const key of Object.keys(node)) {
     if (['Description', 'description', 'Title', 'title'].includes(key)) continue;
     const v = node[key];
-    if (typeof v === 'string' && v.length < 200 && /(г\.|ул\.|б-р|пр-т|пер\.)/i.test(v)) return v.trim();
+    if (typeof v === 'string' && v.length < 200 && /(г\.|ул\.|б-р|пр-т|пер\.|бул\.)/i.test(v)) return v.trim();
   }
   for (const key of Object.keys(node)) {
     if (['Description', 'description', 'Title', 'title'].includes(key)) continue;
@@ -96,79 +122,69 @@ function findCityCoords(address) {
   return null;
 }
 
-async function parseAvitoFeed(feed) {
+const digits = (s) => String(s).replace(/[^0-9]/g, '');
+
+function mapOffer(offer, feed, i) {
+  const locality = deep(offer, ['locality', 'Locality', 'city', 'City'], 0);
+  const street = deep(offer, ['address', 'Address', 'street', 'Street'], 0);
+  const address = street ? (locality ? locality + ', ' + street : street) : (feed.defaultAddress || feed.region);
+  return {
+    id: String(deep(offer, ['id', 'Id', 'ID', 'object-id'], 0) || i),
+    feedId: feed.id,
+    feedName: feed.name,
+    region: feed.region,
+    price: parseInt(digits(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0)), 10) || 0,
+    title: clean(deep(offer, ['title', 'Title', 'name', 'Name'], 0)) || 'Квартира',
+    description: clean(deep(offer, ['description', 'Description'], 0)),
+    address,
+    lat: Number(deep(offer, ['latitude', 'Latitude', 'lat'], 0)) || 0,
+    lng: Number(deep(offer, ['longitude', 'Longitude', 'lng', 'lon'], 0)) || 0,
+    rooms: parseRooms(deep(offer, ['rooms', 'Rooms'], 0)),
+    area: parseFloat(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square'], 0)) || 0,
+    floor: String(deep(offer, ['floor', 'Floor'], 0)),
+    totalFloors: String(deep(offer, ['floors-total', 'floorsTotal', 'total-floors', 'TotalFloors'], 0)),
+    seller: clean(deep(offer, ['company', 'Company', 'seller', 'Seller', 'developer', 'Developer'], 0)) || feed.name,
+    phone: clean(deep(offer, ['phone', 'Phone'], 0)),
+    images: getImages(offer),
+    url: clean(deep(offer, ['url', 'Url', 'link', 'Link'], 0)),
+  };
+}
+
+function mapAvito(ad, feed, i) {
+  return {
+    id: String(deep(ad, ['Id', 'ID', 'id'], 0) || i),
+    feedId: feed.id,
+    feedName: feed.name,
+    region: feed.region,
+    price: parseInt(digits(deep(ad, ['Price', 'price', 'Cost'], 0)), 10) || 0,
+    title: clean(deep(ad, ['Title', 'Name', 'name'], 0)) || 'Объект недвижимости',
+    description: clean(deep(ad, ['Description', 'description'], 0)),
+    address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
+    lat: 0,
+    lng: 0,
+    rooms: parseRooms(deep(ad, ['Rooms', 'Room', 'RoomsCount'], 0)),
+    area: parseFloat(deep(ad, ['Area', 'Square', 'SqM'], 0)) || 0,
+    floor: String(deep(ad, ['Floor'], 0)),
+    totalFloors: String(deep(ad, ['FloorsTotal', 'TotalFloors'], 0)),
+    seller: clean(deep(ad, ['Company', 'Seller', 'SellerName'], 0)) || feed.name,
+    phone: clean(deep(ad, ['Phone'], 0)),
+    images: getImages(ad),
+    url: clean(deep(ad, ['Url', 'Link'], 0)),
+  };
+}
+
+async function parseFeed(feed) {
+  console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
   const response = await fetch(feed.url, { headers: HEADERS, redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status);
   const xml = await response.text();
   const result = await new Promise((resolve, reject) =>
     parseString(xml, { explicitArray: false }, (err, res) => (err ? reject(err) : resolve(res)))
   );
-  const ads = findAds(result);
-  return ads.map((ad, i) => ({
-    id: String(pick(ad, ['Id', 'ID', 'id'], i)),
-    feedId: feed.id,
-    feedName: feed.name,
-    region: feed.region,
-    price: parseInt(pick(ad, ['Price', 'price', 'Cost'], '0').replace(/[^0-9]/g, ''), 10) || 0,
-    title: clean(pick(ad, ['Title', 'Name', 'name'], 'Объект недвижимости')),
-    description: clean(pick(ad, ['Description', 'description'])),
-    address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
-    lat: 0, lng: 0,
-    rooms: parseRooms(pick(ad, ['Rooms', 'Room', 'RoomsCount'], '0')),
-    area: parseFloat(pick(ad, ['Area', 'Square', 'SqM'], '0')) || 0,
-    floor: String(pick(ad, ['Floor'], '')),
-    totalFloors: String(pick(ad, ['FloorsTotal', 'TotalFloors'], '')),
-    seller: clean(pick(ad, ['Company', 'Seller', 'SellerName'], feed.name)),
-    phone: clean(pick(ad, ['Phone'], '')),
-    images: getImages(ad),
-    url: clean(pick(ad, ['Url', 'Link'], '')),
-  }));
-}
-
-async function parseProfitbaseFeed(feed) {
-  const response = await fetch(feed.url, { headers: HEADERS });
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  const xml = await response.text();
-  const result = await new Promise((resolve, reject) =>
-    parseString(xml, { explicitArray: false, explicitRoot: false }, (err, res) => (err ? reject(err) : resolve(res)))
-  );
-  const offers = findOffers(result);
-  return offers.map((offer, i) => {
-    const priceRaw = pick(offer, ['Price', 'price'], '0');
-    const price = parseInt(String(priceRaw).replace(/[^0-9]/g, ''), 10) || 0;
-    const lat = parseFloat(pick(offer, ['Latitude', 'latitude', 'lat'], '0')) || 0;
-    const lng = parseFloat(pick(offer, ['Longitude', 'longitude', 'lng'], '0')) || 0;
-    const address = clean(pick(offer, ['Address', 'address'], ''));
-    const title = clean(pick(offer, ['Title', 'title', 'Name'], '')) || 'Квартира';
-    return {
-      id: String(pick(offer, ['Id', 'id', 'ID'], i)),
-      feedId: feed.id,
-      feedName: feed.name,
-      region: feed.region,
-      price,
-      title,
-      description: clean(pick(offer, ['Description', 'description'], '')),
-      address: address || feed.region,
-      lat, lng,
-      rooms: parseRooms(pick(offer, ['Rooms', 'rooms', 'RoomsCount'], '0')),
-      area: parseFloat(pick(offer, ['Area', 'area', 'Square'], '0')) || 0,
-      floor: String(pick(offer, ['Floor', 'floor'], '')),
-      totalFloors: String(pick(offer, ['FloorsTotal', 'floorsCount', 'TotalFloors'], '')),
-      seller: clean(pick(offer, ['Company', 'Seller', 'Developer'], feed.name)),
-      phone: clean(pick(offer, ['Phone', 'phone'], '')),
-      images: getImages(offer),
-      url: clean(pick(offer, ['Url', 'url', 'Link'], '')),
-    };
-  });
-}
-
-async function parseFeed(feed) {
-  console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
-  console.log('   URL: ' + feed.url);
   if (feed.format === 'profitbase') {
-    return await parseProfitbaseFeed(feed);
+    return findOffers(result).map((o, i) => mapOffer(o, feed, i));
   }
-  return await parseAvitoFeed(feed);
+  return findAds(result).map((a, i) => mapAvito(a, feed, i));
 }
 
 async function main() {
@@ -178,6 +194,9 @@ async function main() {
     try {
       const props = await parseFeed(feed);
       console.log('   Найдено: ' + props.length);
+      if (props[0]) {
+        console.log('   Пример: цена=' + props[0].price + ' площ=' + props[0].area + ' адрес=' + props[0].address + ' lat=' + props[0].lat);
+      }
       all = all.concat(props);
     } catch (e) {
       console.error('   Ошибка: ' + e.message);
@@ -185,30 +204,19 @@ async function main() {
   }
   if (all.length === 0) return;
 
-  // Для Avito-объектов без координат — берём из MANUAL или CITY_COORDS
-  all.forEach((p, i) => {
-    if (p.lat !== 0 && p.lng !== 0) return; // Profitbase уже с координатами
-    const addr = p.address;
-    if (MANUAL[addr]) {
-      const base = MANUAL[addr];
-      const idx = all.filter(x => x.address === addr).indexOf(p);
-      const angle = idx * 2.399;
-      const radius = 0.000035 * Math.sqrt(idx);
-      p.lat = Number((base.lat + radius * Math.sin(angle)).toFixed(6));
-      p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
-    } else {
-      const cityCoords = findCityCoords(addr) || CITY_COORDS['светлогорск'];
-      const idx = all.filter(x => x.address === addr).indexOf(p);
-      const angle = idx * 2.399;
-      const radius = 0.000035 * Math.sqrt(idx);
-      p.lat = Number((cityCoords.lat + radius * Math.sin(angle)).toFixed(6));
-      p.lng = Number((cityCoords.lng + radius * Math.cos(angle)).toFixed(6));
-    }
+  all.forEach((p) => {
+    if (p.lat !== 0 && p.lng !== 0) return;
+    const base = MANUAL[p.address] || findCityCoords(p.address) || CITY_COORDS['светлогорск'];
+    const idx = all.filter((x) => x.address === p.address).indexOf(p);
+    const angle = idx * 2.399;
+    const radius = 0.000035 * Math.sqrt(idx);
+    p.lat = Number((base.lat + radius * Math.sin(angle)).toFixed(6));
+    p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
-  console.log('💾 Сохранено: ' + all.length + ' объектов');
+  console.log('Сохранено: ' + all.length + ' объектов');
 }
 
 main();

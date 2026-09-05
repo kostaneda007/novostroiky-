@@ -16,7 +16,9 @@ type Property = {
   totalFloors: string;
   feedName: string;
   images: string[];
-  feedId: string;
+  phone: string;
+  url: string;
+  seller: string;
 };
 
 type Group = {
@@ -25,7 +27,7 @@ type Group = {
   lat: number;
   lng: number;
   minPrice: number;
-  feedId: string;
+  feedName: string;
 };
 
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
@@ -34,24 +36,18 @@ const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', '
 function balloonHtml(g: Group) {
   const rows = g.items.slice(0, 5).map((p) =>
     '<div style="margin:6px 0;border-bottom:1px solid #eee;padding-bottom:6px"><b>' +
-    formatPrice(p.price) +
-    '</b><br/><span style="color:#888">' +
-    (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') +
-    ' · ' + p.area + ' м² · эт. ' + p.floor +
-    '</span></div>'
+    formatPrice(p.price) + '</b><br/><span style="color:#888">' +
+    (p.rooms === 0 ? 'Студия' : p.rooms + '-комн.') + ' · ' + p.area + ' м²</span></div>'
   ).join('');
-  const more = g.items.length > 5
-    ? '<div style="color:#2563eb;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>'
-    : '';
-  return '<div style="max-width:280px;font-family:sans-serif">' +
-    '<div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
-    g.items.length + ' квартир · от ' + formatMln(g.minPrice) + '</div>' +
-    '<div style="color:#555;margin-bottom:8px">' + g.address + '</div>' +
-    rows + more + '</div>';
+  const more = g.items.length > 5 ? '<div style="color:#2563eb;margin-top:8px">ещё ' + (g.items.length - 5) + ' объявлений</div>' : '';
+  return '<div style="max-width:280px;font-family:sans-serif"><div style="font-weight:700;font-size:16px;margin-bottom:4px">' +
+    g.items.length + ' квартир · от ' + formatMln(g.minPrice) + '</div><div style="color:#555;margin-bottom:8px">' +
+    g.address + '</div>' + rows + more + '</div>';
 }
 
 export default function MapView() {
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [query, setQuery] = useState('');
 
   const groups = useMemo<Group[]>(() => {
@@ -65,15 +61,12 @@ export default function MapView() {
       items,
       lat: items.reduce((s, p) => s + p.lat, 0) / items.length,
       lng: items.reduce((s, p) => s + p.lng, 0) / items.length,
-      minPrice: Math.min(...items.map((p) => p.price)),
-      feedId: items[0].feedId,
+      minPrice: Math.min(...items.map((p) => p.price).filter((x) => x > 0).concat([0])),
+      feedName: items[0].feedName,
     }));
   }, []);
 
-  const selectedGroup = useMemo(() => 
-    groups.find((g) => g.address === selectedAddress) || null,
-    [groups, selectedAddress]
-  );
+  const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAddress) || null, [groups, selectedAddress]);
 
   const center = useMemo(() => {
     if (groups.length === 0) return [54.9392, 20.1405] as [number, number];
@@ -85,10 +78,7 @@ export default function MapView() {
   const filteredAddresses = useMemo(() => {
     if (!query) return groups;
     const q = query.toLowerCase();
-    return groups.filter((g) => 
-      g.address.toLowerCase().includes(q) || 
-      g.items.some((i) => i.feedName.toLowerCase().includes(q))
-    );
+    return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q));
   }, [groups, query]);
 
   return (
@@ -110,39 +100,26 @@ export default function MapView() {
                   balloonContent: balloonHtml(g),
                 }}
                 options={{
-                  preset: selectedAddress === g.address 
-                    ? 'islands#redStretchyIcon' 
-                    : 'islands#blueStretchyIcon',
+                  preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon',
                   balloonMaxWidth: 320,
                 }}
-                onClick={() => setSelectedAddress(g.address)}
+                onClick={() => { setSelectedAddress(g.address); setSelectedProperty(null); }}
               />
             ))}
           </YMap>
-
           <div className="absolute top-4 left-4 bg-neutral-950/80 backdrop-blur-sm border border-neutral-800 rounded-lg px-4 py-3">
-            <h1 className="text-xl font-serif tracking-wide">
-              Coastal <span className="text-amber-400">Estate</span>
-            </h1>
-            <p className="text-xs text-neutral-400 mt-1">
-              {(properties as Property[]).length} объектов · {groups.length} адресов
-            </p>
+            <h1 className="text-xl font-serif tracking-wide">Coastal <span className="text-amber-400">Estate</span></h1>
+            <p className="text-xs text-neutral-400 mt-1">{(properties as Property[]).length} объектов · {groups.length} адресов</p>
           </div>
         </div>
 
         <aside className="w-[480px] bg-neutral-950 border-l border-neutral-800 flex flex-col">
-          {selectedGroup ? (
-            <AddressCards 
-              group={selectedGroup} 
-              onClose={() => setSelectedAddress(null)} 
-            />
+          {selectedProperty ? (
+            <PropertyDetail property={selectedProperty} onBack={() => setSelectedProperty(null)} />
+          ) : selectedGroup ? (
+            <AddressCards group={selectedGroup} onClose={() => setSelectedAddress(null)} onSelect={setSelectedProperty} />
           ) : (
-            <AddressList 
-              groups={filteredAddresses}
-              query={query}
-              setQuery={setQuery}
-              onSelect={setSelectedAddress}
-            />
+            <AddressList groups={filteredAddresses} query={query} setQuery={setQuery} onSelect={(a) => setSelectedAddress(a)} />
           )}
         </aside>
       </div>
@@ -150,85 +127,105 @@ export default function MapView() {
   );
 }
 
-function AddressCards({ group, onClose }: { group: Group; onClose: () => void }) {
-  const sorted = [...group.items].sort((a, b) => a.price - b.price);
+function PropertyDetail({ property, onBack }: { property: Property; onBack: () => void }) {
+  const [img, setImg] = useState(0);
+  const imgs = property.images;
   return (
     <>
       <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-        <button onClick={onClose} className="text-neutral-400 hover:text-amber-400 transition text-sm">
-          ← Все адреса
-        </button>
+        <button onClick={onBack} className="text-neutral-400 hover:text-amber-400 transition text-sm">← К списку квартир</button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        {imgs.length > 0 && (
+          <img src={imgs[img] || imgs[0]} alt={property.title} className="w-full h-64 object-cover rounded-lg" />
+        )}
+        {imgs.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {imgs.map((u, i) => (
+              <button key={i} onClick={() => setImg(i)} className={'shrink-0 rounded overflow-hidden border ' + (i === img ? 'border-amber-400' : 'border-neutral-800')}>
+                <img src={u} alt="" className="w-20 h-14 object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+        <div>
+          <div className="text-amber-400 font-serif text-3xl mb-1">{property.price > 0 ? formatPrice(property.price) : 'Цена по запросу'}</div>
+          <div className="text-neutral-400 text-sm">{property.address}</div>
+          <div className="text-neutral-500 text-xs mt-1">{property.feedName} · {property.seller}</div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label="Комнат" value={property.rooms === 0 ? 'Студия' : String(property.rooms)} />
+          <Stat label="Площадь" value={property.area > 0 ? property.area + ' м²' : '—'} />
+          <Stat label="Этаж" value={property.floor ? property.floor + (property.totalFloors ? '/' + property.totalFloors : '') : '—'} />
+        </div>
+        {property.description && (
+          <div>
+            <h3 className="text-sm uppercase tracking-wider text-neutral-500 mb-2">Описание</h3>
+            <p className="text-neutral-300 text-sm leading-relaxed whitespace-pre-line">{property.description}</p>
+          </div>
+        )}
+        <div className="space-y-2 pt-2">
+          {property.phone && (
+            <a href={'tel:' + property.phone.replace(/[^+0-9]/g, '')} className="block w-full bg-amber-500 hover:bg-amber-400 text-neutral-950 font-semibold text-center py-3 rounded-lg transition">
+              Позвонить: {property.phone}
+            </a>
+          )}
+          {property.url && (
+            <a href={property.url} target="_blank" rel="noopener" className="block w-full border border-amber-500 text-amber-400 hover:bg-amber-500/10 font-semibold text-center py-3 rounded-lg transition">
+              Открыть на сайте застройщика
+            </a>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-3">
+      <div className="text-xs text-neutral-500 uppercase tracking-wide">{label}</div>
+      <div className="text-neutral-100 font-medium mt-1">{value}</div>
+    </div>
+  );
+}
+
+function AddressCards({ group, onClose, onSelect }: { group: Group; onClose: () => void; onSelect: (p: Property) => void }) {
+  const sorted = [...group.items].sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
+  return (
+    <>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+        <button onClick={onClose} className="text-neutral-400 hover:text-amber-400 transition text-sm">← Все адреса</button>
         <span className="text-xs text-neutral-500">{group.items.length} квартир</span>
       </div>
       <div className="px-5 py-3 border-b border-neutral-800 bg-neutral-900/50">
-        <div className="text-amber-400 font-serif text-2xl">
-          {group.address}
-        </div>
-        <div className="text-sm text-neutral-400 mt-1">
-          от {formatPrice(group.minPrice)}
-        </div>
+        <div className="text-amber-400 font-serif text-xl">{group.address}</div>
+        <div className="text-sm text-neutral-400 mt-1">от {formatMln(group.minPrice)} · {group.feedName}</div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {sorted.map((p) => (
-          <div key={p.id} className="px-5 py-4 border-b border-neutral-900 hover:bg-neutral-900/50 transition">
-            {p.images[0] && (
-              <img 
-                src={p.images[0]} 
-                alt={p.title} 
-                className="w-full h-48 object-cover rounded-lg mb-3" 
-              />
-            )}
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="flex-1">
-                <div className="text-amber-400 font-serif text-xl">
-                  {formatPrice(p.price)}
-                </div>
-                <div className="text-sm text-neutral-300 mt-1">
-                  {p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area} м²
-                  {p.floor && ` · эт. ${p.floor}${p.totalFloors ? '/' + p.totalFloors : ''}`}
-                </div>
+          <button key={p.id} onClick={() => onSelect(p)} className="w-full text-left px-5 py-4 border-b border-neutral-900 hover:bg-neutral-900 transition">
+            <div className="flex gap-3">
+              {p.images[0] ? (
+                <img src={p.images[0]} alt="" className="w-24 h-20 object-cover rounded-lg shrink-0" />
+              ) : (
+                <div className="w-24 h-20 bg-neutral-900 rounded-lg shrink-0 flex items-center justify-center text-neutral-600 text-xs">нет фото</div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-amber-400 font-medium">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
+                <div className="text-sm text-neutral-300 mt-0.5">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area > 0 ? p.area + ' м²' : ''} {p.floor ? '· эт. ' + p.floor : ''}</div>
+                <div className="text-xs text-neutral-500 mt-1 truncate">{p.title}</div>
               </div>
+              <span className="text-neutral-600">→</span>
             </div>
-            {p.description && (
-              <p className="text-xs text-neutral-500 line-clamp-3 mt-2">
-                {p.description.replace(/\s+/g, ' ')}
-              </p>
-            )}
-            {p.images.length > 1 && (
-              <div className="flex gap-1 mt-2 flex-wrap">
-                {p.images.slice(0, 4).map((img, idx) => (
-                  <img 
-                    key={idx} 
-                    src={img} 
-                    alt="" 
-                    className="w-12 h-12 object-cover rounded" 
-                  />
-                ))}
-                {p.images.length > 4 && (
-                  <div className="w-12 h-12 bg-neutral-800 rounded flex items-center justify-center text-xs text-neutral-400">
-                    +{p.images.length - 4}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          </button>
         ))}
       </div>
     </>
   );
 }
 
-function AddressList({ 
-  groups, 
-  query, 
-  setQuery, 
-  onSelect 
-}: { 
-  groups: Group[]; 
-  query: string; 
-  setQuery: (v: string) => void; 
-  onSelect: (addr: string) => void;
-}) {
+function AddressList({ groups, query, setQuery, onSelect }: { groups: Group[]; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void }) {
   const sorted = [...groups].sort((a, b) => a.minPrice - b.minPrice);
   return (
     <>
@@ -237,35 +234,18 @@ function AddressList({
         <p className="text-xs text-neutral-500 mt-1">{groups.length} адресов</p>
       </div>
       <div className="px-5 py-3 border-b border-neutral-800">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по адресу или ЖК..."
-          className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500"
-        />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-amber-500" />
       </div>
       <div className="flex-1 overflow-y-auto">
         {sorted.map((g) => (
-          <button
-            key={g.address}
-            onClick={() => onSelect(g.address)}
-            className="w-full text-left px-5 py-4 border-b border-neutral-900 hover:bg-neutral-900 transition group"
-          >
+          <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left px-5 py-4 border-b border-neutral-900 hover:bg-neutral-900 transition group">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="text-amber-400 font-medium">
-                  {g.items.length} кв. · от {formatMln(g.minPrice)}
-                </div>
-                <div className="text-sm text-neutral-300 truncate mt-0.5">
-                  {g.address}
-                </div>
-                <div className="text-xs text-neutral-500 mt-1">
-                  {g.feedName}
-                </div>
+                <div className="text-amber-400 font-medium">{g.items.length} кв. · от {formatMln(g.minPrice)}</div>
+                <div className="text-sm text-neutral-300 truncate mt-0.5">{g.address}</div>
+                <div className="text-xs text-neutral-500 mt-1">{g.feedName}</div>
               </div>
-              <span className="text-neutral-600 group-hover:text-amber-400 transition">
-                →
-              </span>
+              <span className="text-neutral-600 group-hover:text-amber-400 transition">→</span>
             </div>
           </button>
         ))}
