@@ -245,7 +245,7 @@ function mapAvito(ad, feed, i) {
   };
 }
 
-async const findAds = (node) => {
+const findAds = (node) => {
   if (!node || typeof node !== 'object') return [];
   if (node.Ad) return Array.isArray(node.Ad) ? node.Ad : [node.Ad];
   for (const key of Object.keys(node)) {
@@ -266,7 +266,7 @@ const findOffers = (node) => {
   return [];
 };
 
-function parseFeed(feed) {
+async function parseFeed(feed) {
   console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
   const response = await fetch(feed.url, { headers: HEADERS, redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status);
