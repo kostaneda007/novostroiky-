@@ -21,6 +21,19 @@ const CITY_COORDS = {
   'зеленоградск': { lat: 54.9601, lng: 20.4742 },
 };
 
+const rich = (text) =>
+  String(text)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<!\[CDATA\[|\]\]>/g, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;|&apos;/g, "'")
+    .split('\n')
+    .map((l) => l.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
 const clean = (text) =>
   String(text).replace(/<!\[CDATA\[|\]\]>/g, '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 
@@ -129,6 +142,32 @@ function parseArea(v) {
   return m ? parseFloat(m[1]) : 0;
 }
 
+const CITY_CENTERS = {
+  'Калининград': { lat: 54.7104, lng: 20.4522 },
+  'Светлогорск': { lat: 54.9416, lng: 20.1555 },
+  'Пионерский': { lat: 54.9500, lng: 20.2167 },
+  'Отрадное': { lat: 54.9434, lng: 20.1209 },
+  'Зеленоградск': { lat: 54.9601, lng: 20.4742 },
+  'Прибрежное': { lat: 54.7247, lng: 20.4324 },
+};
+
+function detectCity(address, lat, lng) {
+  const lower = String(address || '').toLowerCase();
+  for (const c of Object.keys(CITY_CENTERS)) {
+    if (lower.includes(c.toLowerCase())) return c;
+  }
+  if (lat && lng) {
+    let best = null;
+    let bestD = 0.12;
+    for (const [c, cc] of Object.entries(CITY_CENTERS)) {
+      const d = Math.sqrt((cc.lat - lat) * (cc.lat - lat) + (cc.lng - lng) * (cc.lng - lng));
+      if (d < bestD) { bestD = d; best = c; }
+    }
+    if (best) return best;
+  }
+  return 'Другое';
+}
+
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
 function mapOffer(offer, feed, i) {
@@ -151,7 +190,7 @@ function mapOffer(offer, feed, i) {
     region: feed.region,
     price: parseInt(digits(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0)), 10) || 0,
     title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
-    description: clean(deep(offer, ['description', 'Description'], 0)),
+    description: rich(deep(offer, ['description', 'Description'], 0)),
     address: fullAddr,
     lat: coordLat,
     lng: coordLng,
@@ -174,7 +213,7 @@ function mapAvito(ad, feed, i) {
     region: feed.region,
     price: parseInt(digits(deep(ad, ['Price', 'price', 'Cost'], 0)), 10) || 0,
     title: clean(deep(ad, ['Title', 'Name', 'name'], 0)) || 'Объект недвижимости',
-    description: clean(deep(ad, ['Description', 'description'], 0)),
+    description: rich(deep(ad, ['Description', 'description'], 0)),
     address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
     lat: 0,
     lng: 0,
@@ -229,6 +268,8 @@ async function main() {
     p.lat = Number((base.lat + radius * Math.sin(angle)).toFixed(6));
     p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
+
+  all.forEach((p) => { p.city = detectCity(p.address, p.lat, p.lng); });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));

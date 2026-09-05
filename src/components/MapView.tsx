@@ -3,12 +3,18 @@ import { YMaps, Map as YMap, Placemark } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
 type Property = {
-  id: string; price: number; title: string; description: string; address: string;
+  id: string; price: number; title: string; description: string; address: string; city: string;
   lat: number; lng: number; rooms: number; area: number; floor: string; totalFloors: string;
   feedName: string; images: string[]; phone: string; url: string; seller: string;
 };
 
 type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string };
+
+type Filters = { rooms: number[]; city: string | null; feed: string | null; priceMin: string; priceMax: string };
+
+const EMPTY_FILTERS: Filters = { rooms: [], city: null, feed: null, priceMin: '', priceMax: '' };
+const ROOM_OPTIONS = [0, 1, 2, 3, 4];
+const roomLabel = (r: number) => (r === 0 ? 'Студия' : r === 4 ? '4+' : String(r));
 
 const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
 const formatMln = (price: number) => (price / 1000000).toFixed(1).replace('.', ',') + ' млн';
@@ -30,6 +36,26 @@ function Chevron({ dir }: { dir: 'l' | 'r' }) {
     <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       {dir === 'l' ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
     </svg>
+  );
+}
+
+function isHeadingLine(l: string) {
+  return l.length <= 42 && /[А-ЯA-Z]{3,}/.test(l) && l === l.toUpperCase();
+}
+function isEmojiLine(l: string) {
+  return /^[\u{1F000}-\u{1FAFF}\u{2190}-\u{2BFF}\u{2705}\u{FE0F}•✔⚠✳]/u.test(l);
+}
+
+function Description({ text }: { text: string }) {
+  return (
+    <div>
+      {text.split('\n').map((l, i) => {
+        const t = l.trim();
+        if (!t) return <div key={i} className="h-2" />;
+        if (isHeadingLine(t)) return <h4 key={i} className="text-sm font-bold tracking-wide text-[#7A5900] mt-3 mb-1">{t}</h4>;
+        return <p key={i} className={'py-0.5 text-[15px] leading-relaxed ' + (isEmojiLine(t) ? 'text-[#1E1B13]' : 'text-[#4C4639]')}>{t}</p>;
+      })}
+    </div>
   );
 }
 
@@ -83,6 +109,7 @@ export default function MapView() {
   const hash = useHash();
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   const propertyId = hash.indexOf('#/property/') === 0 ? decodeURIComponent(hash.slice(11)) : null;
   const propertyPage = useMemo(
@@ -90,9 +117,27 @@ export default function MapView() {
     [propertyId]
   );
 
+  const cities = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (properties as Property[]).forEach((p) => { if (p.city && p.city !== 'Другое') counts[p.city] = (counts[p.city] || 0) + 1; });
+    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  }, []);
+
+  const feeds = useMemo(() => Array.from(new Set((properties as Property[]).map((p) => p.feedName))), []);
+
+  const filteredProps = useMemo(() => (properties as Property[]).filter((p) => {
+    if (filters.rooms.length && !filters.rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;
+    if (filters.city && p.city !== filters.city) return false;
+    if (filters.feed && p.feedName !== filters.feed) return false;
+    const min = parseFloat(filters.priceMin) || 0;
+    const max = parseFloat(filters.priceMax) || Infinity;
+    if (p.price > 0 && (p.price < min * 1e6 || p.price > max * 1e6)) return false;
+    return true;
+  }), [filters]);
+
   const groups = useMemo<Group[]>(() => {
     const grouped: Record<string, Property[]> = {};
-    for (const p of properties as Property[]) {
+    for (const p of filteredProps) {
       if (!grouped[p.address]) grouped[p.address] = [];
       grouped[p.address].push(p);
     }
@@ -107,12 +152,12 @@ export default function MapView() {
         feedName: items[0].feedName,
       };
     });
-  }, []);
+  }, [filteredProps]);
 
   const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAddress) || null, [groups, selectedAddress]);
 
   const center = useMemo(() => {
-    if (groups.length === 0) return [54.9392, 20.1405] as [number, number];
+    if (groups.length === 0) return [54.7104, 20.4522] as [number, number];
     const lat = groups.reduce((s, g) => s + g.lat, 0) / groups.length;
     const lng = groups.reduce((s, g) => s + g.lng, 0) / groups.length;
     return [lat, lng] as [number, number];
@@ -154,7 +199,7 @@ export default function MapView() {
           </YMap>
           <div className="absolute top-4 left-4 bg-white rounded-3xl shadow-lg px-5 py-4">
             <h1 className="text-xl font-medium tracking-wide">Новостройки <span className="text-[#7A5900] font-bold">39</span></h1>
-            <p className="text-xs text-[#4C4639] mt-1">{(properties as Property[]).length} объектов · {groups.length} адресов</p>
+            <p className="text-xs text-[#4C4639] mt-1">{filteredProps.length} объектов · {groups.length} адресов</p>
           </div>
         </div>
 
@@ -162,7 +207,17 @@ export default function MapView() {
           {selectedGroup ? (
             <AddressCards group={selectedGroup} onClose={() => setSelectedAddress(null)} />
           ) : (
-            <AddressList groups={filteredAddresses} query={query} setQuery={setQuery} onSelect={(a) => setSelectedAddress(a)} />
+            <AddressList
+              groups={filteredAddresses}
+              total={filteredProps.length}
+              query={query}
+              setQuery={setQuery}
+              onSelect={(a) => setSelectedAddress(a)}
+              filters={filters}
+              setFilters={setFilters}
+              cities={cities}
+              feeds={feeds}
+            />
           )}
         </aside>
       </div>
@@ -186,7 +241,7 @@ function PropertyPage({ property }: { property: Property }) {
         <PhotoSlider images={property.images} alt={property.title} />
         <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6">
           <div className="text-[#7A5900] font-bold text-3xl mb-2">{property.price > 0 ? formatPrice(property.price) : 'Цена по запросу'}</div>
-          <div className="text-lg text-[#1E1B13]">{property.address}</div>
+          <div className="text-lg">{property.address}</div>
           <div className="text-sm text-[#4C4639] mt-1">{property.feedName} · {property.seller}</div>
           <div className="grid grid-cols-3 gap-3 mt-5">
             <Stat label="Комнат" value={property.rooms === 0 ? 'Студия' : String(property.rooms)} />
@@ -194,7 +249,7 @@ function PropertyPage({ property }: { property: Property }) {
             <Stat label="Этаж" value={property.floor ? property.floor + (property.totalFloors ? '/' + property.totalFloors : '') : '—'} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-            <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="h-13 py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg transition">
+            <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg transition">
               Позвонить: {PHONE}
             </a>
             <a href={'https://coastal-estate.flexbe.ru/?property_id=' + property.id + '&price=' + property.price + '&address=' + encodeURIComponent(property.address)} target="_blank" rel="noopener" className="py-3.5 rounded-full bg-[#FFDEA6] text-[#261900] font-medium text-center hover:shadow-lg transition">
@@ -205,7 +260,7 @@ function PropertyPage({ property }: { property: Property }) {
         {property.description && (
           <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6">
             <h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-3">Описание</h3>
-            <p className="text-[#1E1B13] leading-relaxed whitespace-pre-line">{property.description}</p>
+            <Description text={property.description} />
           </div>
         )}
       </main>
@@ -219,6 +274,14 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-[#4C4639] uppercase tracking-wide">{label}</div>
       <div className="text-lg font-medium mt-1">{value}</div>
     </div>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className={'shrink-0 h-9 px-4 rounded-full border text-sm font-medium transition ' + (active ? 'bg-[#FFDEA6] border-[#FFDEA6] text-[#261900]' : 'bg-white border-[#E0D7C8] text-[#4C4639] hover:border-[#7A5900]')}>
+      {children}
+    </button>
   );
 }
 
@@ -245,7 +308,7 @@ function AddressCards({ group, onClose }: { group: Group; onClose: () => void })
             )}
             <div className="flex-1 min-w-0">
               <div className="text-[#7A5900] font-bold">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
-              <div className="text-sm text-[#1E1B13] mt-0.5">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area > 0 ? p.area + ' м²' : ''} {p.floor ? '· эт. ' + p.floor : ''}</div>
+              <div className="text-sm mt-0.5">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} · {p.area > 0 ? p.area + ' м²' : ''} {p.floor ? '· эт. ' + p.floor : ''}</div>
               <div className="text-xs text-[#4C4639] mt-1 truncate">{p.title}</div>
             </div>
           </a>
@@ -255,25 +318,58 @@ function AddressCards({ group, onClose }: { group: Group; onClose: () => void })
   );
 }
 
-function AddressList({ groups, query, setQuery, onSelect }: { groups: Group[]; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void }) {
+function AddressList({ groups, total, query, setQuery, onSelect, filters, setFilters, cities, feeds }: {
+  groups: Group[]; total: number; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void;
+  filters: Filters; setFilters: (f: Filters) => void; cities: string[]; feeds: string[];
+}) {
   const sorted = [...groups].sort((a, b) => (a.minPrice || Infinity) - (b.minPrice || Infinity));
+  const active = filters.rooms.length > 0 || !!filters.city || !!filters.feed || !!filters.priceMin || !!filters.priceMax;
+  const toggleRoom = (r: number) => {
+    const rooms = filters.rooms.includes(r) ? filters.rooms.filter((x) => x !== r) : [...filters.rooms, r];
+    setFilters({ ...filters, rooms });
+  };
   return (
     <>
       <div className="px-5 pt-5 pb-3">
         <h2 className="text-xl font-medium">Все адреса</h2>
-        <p className="text-xs text-[#4C4639] mt-1">{groups.length} адресов</p>
+        <p className="text-xs text-[#4C4639] mt-1">{total} объектов · {groups.length} адресов</p>
       </div>
-      <div className="px-4 pb-3">
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full h-13 py-3 px-5 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+      <div className="px-4 pb-3 space-y-2">
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full py-3 px-5 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {cities.map((c) => (
+            <Chip key={c} active={filters.city === c} onClick={() => setFilters({ ...filters, city: filters.city === c ? null : c })}>{c}</Chip>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {ROOM_OPTIONS.map((r) => (
+            <Chip key={r} active={filters.rooms.includes(r)} onClick={() => toggleRoom(r)}>{roomLabel(r)}</Chip>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {feeds.map((f) => (
+            <Chip key={f} active={filters.feed === f} onClick={() => setFilters({ ...filters, feed: filters.feed === f ? null : f })}>{f}</Chip>
+          ))}
+        </div>
+        <div className="flex gap-2 items-center">
+          <input value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} type="number" placeholder="Цена от, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+          <input value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} type="number" placeholder="до, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+          {active && (
+            <button onClick={() => setFilters(EMPTY_FILTERS)} className="shrink-0 h-10 px-4 rounded-full bg-[#7A5900] text-white text-sm font-medium">Сброс</button>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {sorted.map((g) => (
           <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left rounded-[20px] bg-white border border-[#E0D7C8] px-4 py-3 hover:shadow-md transition">
             <div className="text-[#7A5900] font-bold">{g.items.length} кв. · {priceSuffix(g.minPrice)}</div>
-            <div className="text-sm text-[#1E1B13] truncate mt-0.5">{g.address}</div>
+            <div className="text-sm truncate mt-0.5">{g.address}</div>
             <div className="text-xs text-[#4C4639] mt-0.5">{g.feedName}</div>
           </button>
         ))}
+        {sorted.length === 0 && (
+          <div className="text-center text-sm text-[#4C4639] py-10">Ничего не найдено. Измените фильтры.</div>
+        )}
       </div>
     </>
   );
