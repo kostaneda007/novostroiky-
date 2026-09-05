@@ -254,8 +254,9 @@ async function parseFeed(feed) {
   const result = await new Promise((resolve, reject) =>
     parseString(xml, { explicitArray: false }, (err, res) => (err ? reject(err) : resolve(res)))
   );
-  if (feed.format === 'profitbase') {
-    return findOffers(result).map((o, i) => mapOffer(o, feed, i));
+  if (feed.format === 'profitbase' || feed.format === 'yandex') {
+    const offers = findOffers(result);
+    if (offers.length) return offers.map((o, i) => mapOffer(o, feed, i));
   }
   return findAds(result).map((a, i) => mapAvito(a, feed, i));
 }
