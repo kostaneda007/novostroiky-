@@ -92,7 +92,7 @@ function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
   return (
     <div>
       <div className="relative rounded-[28px] overflow-hidden bg-[#F4EEE3] border border-[#E0D7C8]">
-        <img src={good[idx]} alt={alt} onError={() => markBad(good[idx])} className="w-full h-[300px] sm:h-[440px] object-contain" />
+        <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={alt} onError={() => markBad(good[idx])} className="w-full h-[300px] sm:h-[440px] object-contain" />
         {good.length > 1 && (<>
           <button onClick={() => setI((idx - 1 + good.length) % good.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#FFDEA6]"><Chevron dir="l" /></button>
           <button onClick={() => setI((idx + 1) % good.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#FFDEA6]"><Chevron dir="r" /></button>
@@ -101,7 +101,7 @@ function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
       </div>
       {good.length > 1 && (
         <div className="flex gap-2 overflow-x-auto mt-3 pb-1">
-          {good.map((u, k) => <button key={u} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === idx ? 'border-[#7A5900]' : 'border-transparent opacity-70')}><img src={u} alt="" onError={() => markBad(u)} className="w-20 h-14 object-cover" /></button>)}
+          {good.map((u, k) => <button key={u} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === idx ? 'border-[#7A5900]' : 'border-transparent opacity-70')}><img referrerPolicy="no-referrer" loading="lazy" src={u} alt="" onError={() => markBad(u)} className="w-20 h-14 object-cover" /></button>)}
         </div>
       )}
     </div>
@@ -175,7 +175,7 @@ function ComparePage() {
                 <th className="text-left p-4 text-[#4C4639] font-medium w-36">Параметр</th>
                 {items.map((p) => (
                   <th key={p.id} className="p-4 align-top min-w-[220px]">
-                    {p.images[0] && <img src={p.images[0]} alt="" className="w-full h-32 object-cover rounded-xl mb-2" />}
+                    {p.images[0] && <img referrerPolicy="no-referrer" loading="lazy" src={p.images[0]} alt="" className="w-full h-32 object-cover rounded-xl mb-2" />}
                     <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block font-bold text-[#7A5900] hover:underline">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
                     <button onClick={() => toggleCmp(p.id)} className="text-xs text-[#4C4639] hover:text-red-600 mt-1">убрать ✕</button>
                   </th>
@@ -229,7 +229,7 @@ function PropertyCard({ p }: { p: Property }) {
     <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block rounded-[24px] bg-white border border-[#E0D7C8] shadow-sm p-3 hover:shadow-lg hover:border-[#7A5900] transition">
       {good.length ? (
         <div className="relative rounded-2xl overflow-hidden bg-[#F4EEE3]">
-          <img src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-cover" />
+          <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-cover" />
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-[#1E1B13]/55 text-white text-xs font-medium">{idx + 1} из {good.length}</div>
           {good.length > 1 && (<>
             <button onClick={(e) => { block(e); setI((idx - 1 + good.length) % good.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center"><Chevron dir="l" /></button>
