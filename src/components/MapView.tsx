@@ -322,6 +322,7 @@ function PropertyPage({ property }: { property: Property }) {
   const similar = useMemo(() => similarProps(property, properties as Property[]), [property]);
   return (
     <main className="max-w-4xl mx-auto px-5 py-6 space-y-5">
+      <button onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.hash = '#/'; }} className="md:hidden -ml-2 flex items-center gap-1 text-sm font-medium text-[#4C4639]"><Chevron dir="l" /> Назад</button>
       <PhotoSlider images={property.images} alt={property.title} />
       <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6">
         <div className="flex items-start justify-between gap-3">
@@ -505,31 +506,105 @@ function ComplexesPage() {
   );
 }
 
-function AnalyticsPage() {
-  const stats = useMemo(() => {
-    const all = properties as Property[];
-    const priced = all.filter((p) => p.price > 0 && p.area > 0);
-    const avg = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
-    const byCity: Record<string, number[]> = {};
-    priced.forEach((p) => { (byCity[p.city] = byCity[p.city] || []).push(p.price / p.area); });
-    const cities = Object.entries(byCity).map(([c, a]) => ({ c, v: avg(a), n: a.length })).sort((a, b) => b.v - a.v);
-    const byRooms: Record<number, number[]> = {};
-    priced.forEach((p) => { (byRooms[p.rooms] = byRooms[p.rooms] || []).push(p.price / p.area); });
-    const rooms = Object.entries(byRooms).map(([r, a]) => ({ r: Number(r), v: avg(a), n: a.length }));
-    return { total: all.length, avgM2: avg(priced.map((p) => p.price / p.area)), cities, rooms, max: Math.max(...cities.map((x) => x.v)) };
-  }, []);
-  const f = (x: number) => new Intl.NumberFormat('ru-RU').format(Math.round(x));
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-6"><h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-4">{title}</h3>{children}</div>;
+}
+function Bar({ label, value, display, max, color }: { label: string; value: number; display: string; max: number; color: string }) {
   return (
-    <main className="max-w-4xl mx-auto px-5 py-6 space-y-5">
-      <h1 className="text-2xl font-serif font-medium">Аналитика рынка</h1>
-      <div className="grid grid-cols-2 gap-3"><Stat label="Всего объектов" value={String(stats.total)} /><Stat label="Средняя цена м²" value={f(stats.avgM2) + ' ₽'} /></div>
-      <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-6">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-4">Цена м² по городам</h3>
-        {stats.cities.map((c) => <div key={c.c} className="mb-3"><div className="flex justify-between text-sm"><span>{c.c}</span><b>{f(c.v)} ₽</b></div><div className="h-2 rounded-full bg-[#F4EEE3] mt-1"><div className="h-2 rounded-full bg-[#7A5900]" style={{ width: (c.v / stats.max) * 100 + '%' }} /></div></div>)}
+    <div className="mb-3 last:mb-0">
+      <div className="flex justify-between text-sm mb-1"><span>{label}</span><b>{display}</b></div>
+      <div className="h-2.5 rounded-full bg-[#F4EEE3]"><div className="h-2.5 rounded-full" style={{ width: Math.max(4, (value / max) * 100) + '%', background: color }} /></div>
+    </div>
+  );
+}
+function AnalyticsPage() {
+  const [city, setCity] = useState('');
+  const all = useMemo(() => (city ? (properties as Property[]).filter((p) => p.city === city) : (properties as Property[])), [city]);
+  const citiesAll = useMemo(() => Array.from(new Set((properties as Property[]).map((p) => p.city).filter(Boolean))).sort(), []);
+  const stats = useMemo(() => {
+    const avg = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
+    const med = (a: number[]) => { if (!a.length) return 0; const q = [...a].sort((x, y) => x - y); const m = Math.floor(q.length / 2); return q.length % 2 ? q[m] : (q[m - 1] + q[m]) / 2; };
+    const priced = all.filter((p) => p.price > 0);
+    const pricedArea = priced.filter((p) => p.area > 0);
+    const byCity: Record<string, number[]> = {};
+    pricedArea.forEach((p) => { (byCity[p.city] = byCity[p.city] || []).push(p.price / p.area); });
+    const cities = Object.entries(byCity).map(([c, a]) => ({ c, v: avg(a), n: a.length })).filter((x) => x.n >= 5).sort((a, b) => b.v - a.v);
+    const byRooms: Record<number, number[]> = {};
+    pricedArea.forEach((p) => { (byRooms[p.rooms] = byRooms[p.rooms] || []).push(p.price / p.area); });
+    const rooms = Object.entries(byRooms).map(([r, a]) => ({ r: Number(r), v: avg(a), n: a.length })).sort((a, b) => a.r - b.r);
+    const budgets = [
+      { label: 'до 3 млн', min: 0, max: 3 }, { label: '3–5 млн', min: 3, max: 5 }, { label: '5–8 млн', min: 5, max: 8 },
+      { label: '8–12 млн', min: 8, max: 12 }, { label: '12–20 млн', min: 12, max: 20 }, { label: '20+ млн', min: 20, max: Infinity },
+    ].map((b) => ({ label: b.label, count: priced.filter((p) => p.price >= b.min * 1e6 && p.price < b.max * 1e6).length }));
+    const areaB = [0, 30, 50, 70, 90, Infinity];
+    const areaL = ['до 30 м²', '30–50 м²', '50–70 м²', '70–90 м²', '90+ м²'];
+    const areaDist = areaL.map((label, i) => ({ label, count: pricedArea.filter((p) => p.area >= areaB[i] && p.area < areaB[i + 1]).length }));
+    const seaB = [0, 1000, 2000, 5000, Infinity];
+    const seaL = ['до 1 км', '1–2 км', '2–5 км', '5+ км'];
+    const seaDist = seaL.map((label, i) => ({ label, count: all.filter((p) => p.sea != null && p.sea >= seaB[i] && p.sea < seaB[i + 1]).length }));
+    const byComplex: Record<string, number> = {};
+    all.forEach((p) => { if (p.complex) byComplex[p.complex] = (byComplex[p.complex] || 0) + 1; });
+    const topComplexes = Object.entries(byComplex).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const byFeed: Record<string, { n: number; prices: number[]; areas: number[] }> = {};
+    all.forEach((p) => { const f = (byFeed[p.feedName] = byFeed[p.feedName] || { n: 0, prices: [], areas: [] }); f.n++; if (p.price > 0) f.prices.push(p.price); if (p.area > 0) f.areas.push(p.area); });
+    const feeds = Object.entries(byFeed).map(([n, f]) => ({ n, count: f.n, avg: avg(f.prices), avgArea: avg(f.areas) })).sort((a, b) => b.count - a.count);
+    return {
+      total: all.length, avgPrice: avg(priced.map((p) => p.price)), medPrice: med(priced.map((p) => p.price)),
+      avgM2: avg(pricedArea.map((p) => p.price / p.area)), medM2: med(pricedArea.map((p) => p.price / p.area)),
+      avgArea: avg(pricedArea.map((p) => p.area)), coastal: all.filter((p) => p.sea != null && p.sea <= 2000).length,
+      cities, rooms, budgets, areaDist, seaDist, topComplexes, feeds,
+      maxCity: Math.max(...cities.map((c) => c.v), 1), maxBudget: Math.max(...budgets.map((b) => b.count), 1),
+      maxArea: Math.max(...areaDist.map((a) => a.count), 1), maxSea: Math.max(...seaDist.map((x) => x.count), 1),
+      maxRooms: Math.max(...rooms.map((r) => r.v), 1),
+    };
+  }, [all]);
+  const f = (x: number) => new Intl.NumberFormat('ru-RU').format(Math.round(x));
+  const fM = (x: number) => (x / 1e6).toFixed(1).replace('.', ',') + ' млн';
+  return (
+    <main className="max-w-6xl mx-auto px-4 md:px-5 py-6 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl md:text-3xl font-serif font-medium">Аналитика рынка</h1>
+        <select value={city} onChange={(e) => setCity(e.target.value)} className="h-11 px-4 rounded-xl bg-white border border-[#E0D7C8] text-sm">
+          <option value="">Вся область</option>
+          {citiesAll.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
       </div>
-      <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-6">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-4">Цена м² по комнатам</h3>
-        {stats.rooms.map((r) => <div key={r.r} className="mb-3"><div className="flex justify-between text-sm"><span>{roomLabel(r.r)}</span><b>{f(r.v)} ₽</b></div><div className="h-2 rounded-full bg-[#F4EEE3] mt-1"><div className="h-2 rounded-full bg-[#B26A00]" style={{ width: (r.v / stats.max) * 100 + '%' }} /></div></div>)}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Всего объектов" value={String(stats.total)} />
+        <Stat label="Средняя цена" value={fM(stats.avgPrice)} />
+        <Stat label="Медиана цены" value={fM(stats.medPrice)} />
+        <Stat label="Средняя ₽/м²" value={f(stats.avgM2) + ' ₽'} />
+        <Stat label="Медиана ₽/м²" value={f(stats.medM2) + ' ₽'} />
+        <Stat label="Средняя площадь" value={stats.avgArea.toFixed(0) + ' м²'} />
+        <Stat label="У моря ≤ 2 км" value={String(stats.coastal)} />
+        <Stat label="ЖК в топе" value={String(stats.topComplexes.length)} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Card title="💰 Цена м² по городам">{stats.cities.map((c) => <Bar key={c.c} label={c.c + ' · ' + c.n + ' кв.'} value={c.v} display={f(c.v) + ' ₽'} max={stats.maxCity} color="#7A5900" />)}</Card>
+        <Card title="🚪 Цена м² по комнатам">{stats.rooms.map((r) => <Bar key={r.r} label={roomLabel(r.r) + ' · ' + r.n + ' кв.'} value={r.v} display={f(r.v) + ' ₽'} max={stats.maxRooms} color="#B26A00" />)}</Card>
+        <Card title="📊 Распределение по бюджету">{stats.budgets.map((b) => <Bar key={b.label} label={b.label} value={b.count} display={String(b.count)} max={stats.maxBudget} color="#0369A1" />)}</Card>
+        <Card title="📐 Распределение по площади">{stats.areaDist.map((a) => <Bar key={a.label} label={a.label} value={a.count} display={String(a.count)} max={stats.maxArea} color="#1E7E34" />)}</Card>
+        <Card title="🌊 Удалённость от моря">{stats.seaDist.map((x) => <Bar key={x.label} label={x.label} value={x.count} display={String(x.count)} max={stats.maxSea} color="#0E7490" />)}</Card>
+        <Card title="🏆 Топ-10 ЖК по квартирам">
+          {stats.topComplexes.map(([n, c], i) => (
+            <div key={n} className="flex items-center justify-between py-1.5 border-b border-[#F4EEE3] last:border-0 text-sm"><span className="truncate">{i + 1}. «{n}»</span><b>{c}</b></div>
+          ))}
+        </Card>
+      </div>
+      <Card title="🏗 Застройщики">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {stats.feeds.map((d) => (
+            <div key={d.n} className="rounded-2xl bg-[#F4EEE3] p-4">
+              <div className="font-bold text-[#7A5900]">{d.n}</div>
+              <div className="text-xs text-[#4C4639] mt-1">{d.count} объектов · ср. {d.avgArea.toFixed(0)} м²</div>
+              <div className="text-sm font-medium mt-2">от {fM(d.avg)}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <div className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#FFDEA6 0%,#F4C870 100%)' }}>
+        <div className="text-2xl font-serif font-bold text-[#261900]">Нужна персональная подборка?</div>
+        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#7A5900] text-white font-bold hover:shadow-xl transition">Подобрать квартиру →</a>
       </div>
     </main>
   );
