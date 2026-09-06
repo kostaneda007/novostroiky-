@@ -460,41 +460,154 @@ function BudgetPage() {
 
 function AboutPage() {
   return (
-    <main className="max-w-3xl mx-auto px-5 py-6 space-y-5">
-      <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-6">
-        <h1 className="text-2xl font-serif font-medium">Новостройки <span className="text-[#7A5900] font-bold">39</span></h1>
-        <p className="text-[#4C4639] mt-3 leading-relaxed">Агрегатор новостроек Калининградской области. Мы собираем квартиры напрямую от застройщиков — КалининградСтройИнвест, К8, КСК 39 — и показываем их на одной карте с актуальными ценами, планировками и фото. Данные обновляются автоматически каждые 6 часов.</p>
-      </div>
-      <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-6">
-        <h3 className="text-sm font-medium uppercase tracking-wider text-[#4C4639] mb-3">Контакты</h3>
-        <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="block text-xl font-bold text-[#7A5900]">{PHONE}</a>
-        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-3 px-5 py-3 rounded-full bg-[#FFDEA6] text-[#261900] font-medium">Оставить заявку</a>
-      </div>
+    <main className="max-w-5xl mx-auto px-4 md:px-5 py-6 space-y-6">
+      <section className="rounded-[32px] p-8 md:p-12 text-white" style={{ background: 'linear-gradient(135deg,#1E1B13 0%,#3d3624 50%,#7A5900 100%)' }}>
+        <div className="text-sm uppercase tracking-[0.2em] text-[#FFDEA6] mb-2">Агентство элитной недвижимости</div>
+        <h1 className="text-3xl md:text-5xl font-serif font-medium leading-tight">Новостройки <span className="text-[#FFDEA6] font-bold">39</span></h1>
+        <p className="text-lg md:text-xl text-white/85 mt-4 max-w-3xl leading-relaxed">Персональный подбор премиальных квартир в Калининградской области. Работаем напрямую с ведущими застройщиками побережья — без посредников, без комиссий, с юридическим сопровождением сделки.</p>
+        <div className="flex flex-wrap gap-3 mt-6">
+          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="px-6 py-3 rounded-full bg-[#FFDEA6] text-[#261900] font-bold hover:shadow-xl transition">{PHONE}</a>
+          <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="px-6 py-3 rounded-full bg-white/10 backdrop-blur text-white border border-white/20 font-medium hover:bg-white/20 transition">Персональная подборка →</a>
+        </div>
+      </section>
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-2xl bg-white border border-[#E0D7C8] p-4"><div className="text-2xl font-bold text-[#7A5900]">8+</div><div className="text-xs text-[#4C4639] mt-1">лет на рынке</div></div>
+        <div className="rounded-2xl bg-white border border-[#E0D7C8] p-4"><div className="text-2xl font-bold text-[#7A5900]">420+</div><div className="text-xs text-[#4C4639] mt-1">сделок закрыто</div></div>
+        <div className="rounded-2xl bg-white border border-[#E0D7C8] p-4"><div className="text-2xl font-bold text-[#7A5900]">12</div><div className="text-xs text-[#4C4639] mt-1">застройщиков</div></div>
+        <div className="rounded-2xl bg-white border border-[#E0D7C8] p-4"><div className="text-2xl font-bold text-[#7A5900]">600+</div><div className="text-xs text-[#4C4639] mt-1">довольных клиентов</div></div>
+      </section>
+      <section className="rounded-[28px] bg-white border border-[#E0D7C8] p-6 md:p-8">
+        <h2 className="text-2xl font-serif font-medium mb-2">Почему выбирают нас</h2>
+        <p className="text-[#4C4639] mb-6">Мы не просто продаём квадратные метры — мы подбираем образ жизни у Балтийского моря.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { icon: '🎯', t: 'Персональный подход', d: 'Менеджер изучает ваши приоритеты: вид из окна, тишина, близость к морю, инфраструктура для детей.' },
+            { icon: '🔐', t: 'Закрытые предложения', d: 'Доступ к квартирам вне открытой продажи: пентхаусы, видовые лоты, специальные цены от застройщика.' },
+            { icon: '⚖️', t: 'Юридическая чистота', d: 'Проверяем ДДУ, эскроу-счета, историю участка. Сопровождаем сделку от брони до получения ключей.' },
+            { icon: '💎', t: 'Без комиссий', d: 'Наши услуги оплачивает застройщик. Вы получаете ту же цену, что и при прямой покупке, плюс сервис.' },
+            { icon: '🏦', t: 'Ипотека под ключ', d: 'Работаем с 15+ банками. Одобрение за 1 день, ставка ниже рыночной, семейная и IT-ипотека.' },
+            { icon: '✈️', t: 'Удалённая покупка', d: 'Онлайн-показы по видеосвязи, электронный ДДУ, доставка ключей. Подходит для клиентов из любого города.' },
+          ].map((b) => (
+            <div key={b.t} className="rounded-2xl bg-[#FDF9F3] p-5">
+              <div className="text-2xl mb-2">{b.icon}</div>
+              <div className="font-bold">{b.t}</div>
+              <div className="text-sm text-[#4C4639] mt-1 leading-relaxed">{b.d}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="rounded-[28px] bg-white border border-[#E0D7C8] p-6 md:p-8">
+        <h2 className="text-2xl font-serif font-medium mb-4">Сегменты работы</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-2xl border-2 border-[#7A5900] p-5"><div className="text-xs uppercase tracking-wider text-[#7A5900] font-bold">Премиум</div><div className="text-lg font-bold mt-1">от 20 млн ₽</div><div className="text-sm text-[#4C4639] mt-2">Пентхаусы и видовые квартиры в Светлогорске и Зеленоградске, апартаменты на первой линии.</div></div>
+          <div className="rounded-2xl border border-[#E0D7C8] p-5"><div className="text-xs uppercase tracking-wider text-[#B26A00] font-bold">Бизнес</div><div className="text-lg font-bold mt-1">от 10 млн ₽</div><div className="text-sm text-[#4C4639] mt-2">Закрытые жилые комплексы, квартиры с террасами и дизайнерской отделкой.</div></div>
+          <div className="rounded-2xl border border-[#E0D7C8] p-5"><div className="text-xs uppercase tracking-wider text-[#4C4639] font-bold">Инвестиции</div><div className="text-lg font-bold mt-1">любой бюджет</div><div className="text-sm text-[#4C4639] mt-2">Подбор квартир под сдачу в аренду, расчёт доходности, управление объектом.</div></div>
+        </div>
+      </section>
+      <section className="rounded-[28px] bg-white border border-[#E0D7C8] p-6 md:p-8">
+        <h2 className="text-2xl font-serif font-medium mb-4">Как мы работаем</h2>
+        <div className="space-y-3">
+          {[
+            { n: '01', t: 'Знакомство', d: 'Созваниваемся, обсуждаем бюджет, локации, приоритеты. 30 минут.' },
+            { n: '02', t: 'Подборка', d: 'За 2 дня готовим 10–15 объектов под ваш запрос, включая закрытые предложения.' },
+            { n: '03', t: 'Показы', d: 'Организуем онлайн или очные показы. Сравниваем варианты, ведём переговоры о скидке.' },
+            { n: '04', t: 'Сделка', d: 'Юристы проверяют документы, получаем ипотеку, оформляем ДДУ. Вы платите после регистрации.' },
+          ].map((x) => (
+            <div key={x.n} className="flex gap-4 items-start rounded-2xl bg-[#FDF9F3] p-4">
+              <div className="text-3xl font-serif font-bold text-[#7A5900] shrink-0">{x.n}</div>
+              <div><div className="font-bold">{x.t}</div><div className="text-sm text-[#4C4639] mt-0.5">{x.d}</div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#FFDEA6 0%,#F4C870 100%)' }}>
+        <div className="text-2xl font-serif font-bold text-[#261900]">Готовы начать подбор?</div>
+        <p className="text-[#4C4639] mt-2">Бесплатная консультация и персональная подборка за 48 часов</p>
+        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#7A5900] text-white font-bold text-lg hover:shadow-xl transition">Записаться на консультацию →</a>
+      </section>
+      <section className="rounded-[28px] bg-white border border-[#E0D7C8] p-6 md:p-8">
+        <h2 className="text-2xl font-serif font-medium mb-4">Контакты</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><div className="text-xs uppercase tracking-wider text-[#4C4639]">Телефон</div><a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="text-xl font-bold text-[#7A5900]">{PHONE}</a></div>
+          <div><div className="text-xs uppercase tracking-wider text-[#4C4639]">Режим работы</div><div className="text-lg font-medium">Ежедневно 9:00–21:00</div></div>
+          <div><div className="text-xs uppercase tracking-wider text-[#4C4639]">Офис</div><div className="text-sm">г. Калининград, Прегольская наб., 6</div></div>
+          <div><div className="text-xs uppercase tracking-wider text-[#4C4639]">Показы</div><div className="text-sm">Светлогорск · Зеленоградск · Пионерский</div></div>
+        </div>
+      </section>
     </main>
   );
 }
-
 function MortgageCalculator() {
-  const [price, setPrice] = useState(6000000); const [down, setDown] = useState(20); const [years, setYears] = useState(20); const [rate, setRate] = useState(18);
-  const principal = price * (1 - down / 100); const m = rate / 100 / 12; const n = years * 12;
+  const [price, setPrice] = useState(8000000);
+  const [down, setDown] = useState(20);
+  const [years, setYears] = useState(20);
+  const [program, setProgram] = useState('regular');
+  const programs = [
+    { id: 'regular', name: 'Рыночная', rate: 18, desc: 'Стандартная ставка' },
+    { id: 'family', name: 'Семейная', rate: 6, desc: 'Семьи с детьми' },
+    { id: 'it', name: 'IT-ипотека', rate: 6, desc: 'IT-специалисты' },
+    { id: 'subsidy', name: 'Льготная', rate: 2, desc: 'Господдержка' },
+  ];
+  const cur = programs.find((x) => x.id === program) || programs[0];
+  const principal = price * (1 - down / 100);
+  const m = cur.rate / 100 / 12;
+  const n = years * 12;
   const pay = m > 0 ? (principal * m) / (1 - Math.pow(1 + m, -n)) : principal / n;
   const f = (x: number) => new Intl.NumberFormat('ru-RU').format(Math.round(x));
   return (
-    <main className="max-w-3xl mx-auto px-5 py-6">
-      <div className="rounded-[28px] bg-white border border-[#E0D7C8] shadow-sm p-6 space-y-5">
-        <div><label className="text-sm text-[#4C4639]">Стоимость: <b>{f(price)} ₽</b></label><input type="range" min={2000000} max={50000000} step={100000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full" /></div>
-        <div><label className="text-sm text-[#4C4639]">Взнос: <b>{down}%</b></label><input type="range" min={0} max={90} step={5} value={down} onChange={(e) => setDown(Number(e.target.value))} className="w-full" /></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div><label className="text-sm text-[#4C4639]">Срок, лет</label><input type="number" min={1} max={30} value={years} onChange={(e) => setYears(Number(e.target.value))} className="mt-1 w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8]" /></div>
-          <div><label className="text-sm text-[#4C4639]">Ставка</label><select value={rate} onChange={(e) => setRate(Number(e.target.value))} className="mt-1 w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8]"><option value={18}>Обычная 18%</option><option value={6}>Семейная 6%</option><option value={2}>Льготная 2%</option></select></div>
+    <main className="max-w-5xl mx-auto px-4 md:px-5 py-6">
+      <h1 className="text-2xl md:text-3xl font-serif font-medium mb-1">Ипотечный калькулятор</h1>
+      <p className="text-sm text-[#4C4639] mb-6">Выберите программу — ставка подставится автоматически. Работаем с 15+ банками-партнёрами.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3 space-y-4">
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-5 md:p-6">
+            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4C4639]">Стоимость</label><div className="text-xl font-bold text-[#7A5900]">{f(price)} ₽</div></div>
+            <input type="range" min={2000000} max={50000000} step={100000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full accent-[#7A5900]" />
+            <div className="flex justify-between text-xs text-[#7E7669] mt-1"><span>2 млн</span><span>50 млн</span></div>
+          </div>
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-5 md:p-6">
+            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4C4639]">Взнос</label><div className="text-xl font-bold text-[#7A5900]">{down}% · {f(price * down / 100)} ₽</div></div>
+            <input type="range" min={0} max={90} step={5} value={down} onChange={(e) => setDown(Number(e.target.value))} className="w-full accent-[#7A5900]" />
+          </div>
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-5 md:p-6">
+            <label className="text-sm text-[#4C4639]">Срок</label>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {[5, 10, 15, 20, 25, 30].map((y) => (
+                <button key={y} onClick={() => setYears(y)} className={'px-4 py-2 rounded-full border text-sm font-medium transition ' + (years === y ? 'bg-[#7A5900] border-[#7A5900] text-white' : 'bg-white border-[#E0D7C8] text-[#4C4639] hover:border-[#7A5900]')}>{y} лет</button>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[28px] bg-white border border-[#E0D7C8] p-5 md:p-6">
+            <label className="text-sm text-[#4C4639]">Программа</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+              {programs.map((pr) => (
+                <button key={pr.id} onClick={() => setProgram(pr.id)} className={'text-left rounded-2xl border-2 p-3 transition ' + (program === pr.id ? 'border-[#7A5900] bg-[#FDF9F3]' : 'border-[#E0D7C8] bg-white hover:border-[#7A5900]/50')}>
+                  <div className="font-medium text-sm">{pr.name} · {pr.rate}%</div>
+                  <div className="text-xs text-[#4C4639] mt-1">{pr.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="rounded-2xl bg-[#FFDEA6] p-5 text-center"><div className="text-sm text-[#261900]">Платёж в месяц</div><div className="text-3xl font-bold text-[#261900]">{f(pay)} ₽</div><div className="text-xs text-[#261900]/70 mt-1">Кредит {f(principal)} ₽ · переплата {f(pay * n - principal)} ₽</div></div>
-        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="block w-full py-3.5 rounded-full bg-[#7A5900] text-white font-medium text-center hover:shadow-lg">Оставить заявку на ипотеку</a>
+        <div className="lg:col-span-2 space-y-4">
+          <div className="rounded-[28px] p-6 sticky top-20 text-white" style={{ background: 'linear-gradient(135deg,#7A5900 0%,#B26A00 100%)' }}>
+            <div className="text-sm text-white/80">Платёж в месяц</div>
+            <div className="text-4xl font-bold mt-1">{f(pay)} ₽</div>
+            <div className="text-sm text-white/70 mt-1">«{cur.name}» · {cur.rate}%</div>
+            <div className="h-px bg-white/20 my-5" />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-white/80">Кредит</span><b>{f(principal)} ₽</b></div>
+              <div className="flex justify-between"><span className="text-white/80">Переплата</span><b>{f(pay * n - principal)} ₽</b></div>
+              <div className="flex justify-between"><span className="text-white/80">Всего</span><b>{f(pay * n)} ₽</b></div>
+            </div>
+          </div>
+          <a href={'https://coastal-estate.flexbe.ru/?price=' + price + '&program=' + program} target="_blank" rel="noopener" className="block w-full py-4 rounded-full bg-[#FFDEA6] text-[#261900] font-bold text-center hover:shadow-lg transition">Оставить заявку на ипотеку</a>
+          <div className="rounded-2xl bg-white border border-[#E0D7C8] p-4 text-xs text-[#4C4639]">💡 Расчёт ориентировочный. Поможем получить одобрение в 15+ банках.</div>
+        </div>
       </div>
     </main>
   );
 }
-
 export default function MapView() {
   const hash = useHash();
   const propertyId = hash.indexOf('#/property/') === 0 ? decodeURIComponent(hash.slice(11)) : null;

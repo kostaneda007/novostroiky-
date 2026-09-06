@@ -308,11 +308,11 @@ async function main() {
     p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
 
-  const complexCity = {};
-all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; });
-all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
+  all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
 
   all.forEach((p) => { p.city = detectCity(p.address, p.lat, p.lng); });
+const complexCity = {};
+all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; });
 
   all.forEach((p) => { if (p.lat && p.lng) p.sea = seaDistance(p.lat, p.lng); });
 
