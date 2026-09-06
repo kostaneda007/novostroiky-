@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { YMaps, Map as YMap, Placemark } from '@pbe/react-yandex-maps';
+import { YMaps, Map as YMap, Placemark, ZoomControl } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
 type Property = {
@@ -350,10 +350,11 @@ function MapScreen() {
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex h-full bg-[#FDF9F3] text-[#1E1B13]">
         <div className="flex-1 relative">
-          <YMap defaultState={{ center: [54.82, 20.45], zoom: 9 }} options={{ suppressMapOpenBlock: true }} style={{ width: '100%', height: '100%' }}>
+          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
             ))}
+          <ZoomControl />
           </YMap>
         </div>
         <aside className="w-[480px] bg-[#F4EEE3] border-l border-[#E0D7C8] flex flex-col">
@@ -566,9 +567,9 @@ export default function MapView() {
   else { content = <MapScreen />; isMap = true; }
 
   return (
-    <div className="min-h-screen bg-[#FDF9F3] text-[#1E1B13] flex flex-col">
+    <div className={(isMap ? 'h-screen overflow-hidden' : 'min-h-screen') + ' bg-[#FDF9F3] text-[#1E1B13] flex flex-col'}>
       <Header hash={hash} />
-      <div className={isMap ? 'flex-1 min-h-0' : ''}>{content}</div>
+      <div className={isMap ? 'flex-1 min-h-0 overflow-hidden' : ''}>{content}</div>
       <CompareBar />
     </div>
   );
