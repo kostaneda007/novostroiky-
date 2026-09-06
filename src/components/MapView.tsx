@@ -273,7 +273,7 @@ function MapScreen() {
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex flex-col md:flex-row h-full bg-[#FDF9F3] text-[#1E1B13]">
         <div className="relative h-[45dvh] shrink-0 md:h-full md:flex-1">
-          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
+          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom', 'multiTouch'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
             <ZoomControl />
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
