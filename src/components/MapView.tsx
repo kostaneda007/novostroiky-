@@ -286,7 +286,7 @@ function PropertyPage({ property }: { property: Property }) {
         <div className="text-lg mt-1">{property.complex ? 'ЖК «' + property.complex + '» · ' : ''}{property.address}</div>
         <div className="text-sm text-[#4C4639] mt-1">{property.feedName} · {property.seller}</div>
         {property.sea != null && property.sea <= 5000 && <div className="mt-2 inline-block px-3 py-1.5 rounded-lg bg-[#E0F2FE] text-[#0369A1] text-sm font-medium">🌊 {seaLabel(property.sea)} до моря</div>}
-        <div className="grid grid-cols-3 gap-3 mt-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-5">
           <Stat label="Комнат" value={property.rooms === 0 ? 'Студия' : String(property.rooms)} />
           <Stat label="Площадь" value={property.area > 0 ? property.area + ' м²' : '—'} />
           <Stat label="Этаж" value={property.floor ? property.floor + (property.totalFloors ? '/' + property.totalFloors : '') : '—'} />
@@ -348,8 +348,8 @@ function MapScreen() {
 
   return (
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
-      <div className="flex h-full bg-[#FDF9F3] text-[#1E1B13]">
-        <div className="flex-1 relative">
+      <div className="flex flex-col md:flex-row h-full bg-[#FDF9F3] text-[#1E1B13]">
+        <div className="relative h-[45dvh] shrink-0 md:h-full md:flex-1">
           <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
@@ -357,7 +357,7 @@ function MapScreen() {
           <ZoomControl />
           </YMap>
         </div>
-        <aside className="w-[480px] bg-[#F4EEE3] border-l border-[#E0D7C8] flex flex-col">
+        <aside className="flex-1 min-h-0 w-full md:flex-none md:w-[480px] bg-[#F4EEE3] border-t md:border-t-0 md:border-l border-[#E0D7C8] flex flex-col">
           {selectedGroup ? (
             <>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E0D7C8]">
@@ -567,7 +567,7 @@ export default function MapView() {
   else { content = <MapScreen />; isMap = true; }
 
   return (
-    <div className={(isMap ? 'h-screen overflow-hidden' : 'min-h-screen') + ' bg-[#FDF9F3] text-[#1E1B13] flex flex-col'}>
+    <div className={(isMap ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]') + ' bg-[#FDF9F3] text-[#1E1B13] flex flex-col'}>
       <Header hash={hash} />
       <div className={isMap ? 'flex-1 min-h-0 overflow-hidden' : ''}>{content}</div>
       <CompareBar />
