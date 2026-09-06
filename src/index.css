@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Roboto", system-ui, sans-serif;
+}
+
 body {
-  font-family: Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
   background: #FDF9F3;
   color: #1E1B13;
 }
