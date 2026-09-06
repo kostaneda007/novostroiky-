@@ -402,20 +402,30 @@ function ComplexesPage() {
       return { name, items, minPrice: pos.length ? Math.min(...pos) : 0, city: items[0].city, sea: sea.length ? Math.min(...sea) : null };
     }).sort((a, b) => b.items.length - a.items.length);
   }, []);
-  const cur = complexes.find((c) => c.name === sel);
+  const cur = complexes.find((c) => c.name === sel) || null;
   return (
-    <main className="max-w-4xl mx-auto px-5 py-6">
+    <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5">
       <h1 className="text-2xl font-serif font-medium mb-4">Жилые комплексы · {complexes.length}</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        {complexes.map((c) => (
-          <button key={c.name} onClick={() => setSel(c.name === sel ? null : c.name)} className={'text-left rounded-[20px] bg-white border p-4 transition ' + (sel === c.name ? 'border-[#7A5900] shadow-md' : 'border-[#E0D7C8] hover:shadow-md')}>
-            <div className="font-bold text-[#7A5900]">«{c.name}»</div>
-            <div className="text-sm mt-0.5">{c.city}</div>
-            <div className="text-xs text-[#4C4639] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
-          </button>
-        ))}
+      <div className="flex gap-4 h-[calc(100vh-170px)] min-h-[420px]">
+        <aside className="w-[38%] md:w-[340px] shrink-0 overflow-y-auto pr-1 space-y-2">
+          {complexes.map((c) => (
+            <button key={c.name} onClick={() => setSel(c.name)} className={'w-full text-left rounded-[20px] border p-4 transition ' + (sel === c.name ? 'bg-[#FFDEA6] border-[#7A5900]' : 'bg-white border-[#E0D7C8] hover:shadow-md')}>
+              <div className="font-bold text-[#7A5900]">«{c.name}»</div>
+              <div className="text-sm mt-0.5">{c.city}</div>
+              <div className="text-xs text-[#4C4639] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
+            </button>
+          ))}
+        </aside>
+        <section className="flex-1 overflow-y-auto">
+          {cur ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {cur.items.map((p) => <PropertyCard key={p.id} p={p} />)}
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center rounded-[28px] bg-white border border-[#E0D7C8] text-[#4C4639]">← Выберите жилой комплекс слева</div>
+          )}
+        </section>
       </div>
-      {cur && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{cur.items.map((p) => <PropertyCard key={p.id} p={p} />)}</div>}
     </main>
   );
 }
