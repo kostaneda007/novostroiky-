@@ -187,6 +187,10 @@ function detectCity(address, lat, lng) {
 
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
+function unwrap(v) {
+  if (v && typeof v === "object") return v.value != null ? v.value : (v.Value != null ? v.Value : (v._ != null ? v._ : ""));
+  return v == null ? "" : v;
+}
 function mapOffer(offer, feed, i) {
   const addr = offer && offer.Address ? offer.Address : offer;
   const locality = deep(addr, ['locality', 'Locality', 'city', 'City'], 0) || deep(offer, ['locality', 'Locality'], 0);
