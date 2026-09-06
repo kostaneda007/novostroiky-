@@ -10,3 +10,17 @@ body {
   background: #FDF9F3;
   color: #1E1B13;
 }
+
+@media (max-width: 767px) {
+  .sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: none;
+    animation: sheet-up 0.25s ease-out;
+  }
+}
+@keyframes sheet-up {
+  from { transform: translateY(8%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}

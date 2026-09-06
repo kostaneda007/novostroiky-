@@ -350,14 +350,14 @@ function MapScreen() {
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex flex-col md:flex-row h-full bg-[#FDF9F3] text-[#1E1B13]">
         <div className="relative h-[45dvh] shrink-0 md:h-full md:flex-1">
-          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
+          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom', 'multiTouch'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
             ))}
           <ZoomControl />
           </YMap>
         </div>
-        <aside className="flex-1 min-h-0 w-full md:flex-none md:w-[480px] bg-[#F4EEE3] border-t md:border-t-0 md:border-l border-[#E0D7C8] flex flex-col">
+        <aside className={(selectedGroup ? 'sheet ' : '') + 'flex-1 min-h-0 w-full md:flex-none md:w-[480px] bg-[#F4EEE3] border-t md:border-t-0 md:border-l border-[#E0D7C8] flex flex-col'}>
           {selectedGroup ? (
             <>
               <div className="flex items-center gap-2 px-4 py-3 border-b border-[#E0D7C8]">
@@ -366,6 +366,9 @@ function MapScreen() {
                   <div className="font-medium truncate">{selectedGroup.complex ? '«' + selectedGroup.complex + '» · ' : ''}{selectedGroup.address}</div>
                   <div className="text-xs text-[#4C4639]">{priceSuffix(selectedGroup.minPrice)} · {selectedGroup.items.length} квартир</div>
                 </div>
+        <button onClick={onClose} className="md:hidden w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ECE5D8] text-[#4C4639]" aria-label="Закрыть">
+          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-3">{[...selectedGroup.items].sort((a, b) => (a.price || Infinity) - (b.price || Infinity)).map((p) => <PropertyCard key={p.id} p={p} />)}</div>
             </>
