@@ -265,7 +265,13 @@ function MapScreen() {
     });
   }, [filteredProps]);
 
-  const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAddress) || null, [groups, selectedAddress]);
+    const complexes = useMemo(() => {
+    const c: Record<string, number> = {};
+    filteredProps.forEach((pp) => { if (pp.complex) c[pp.complex] = (c[pp.complex] || 0) + 1; });
+    return Object.keys(c).sort((a, b) => c[b] - c[a]);
+  }, [filteredProps]);
+  const feeds = useMemo(() => Array.from(new Set(filteredProps.map((pp) => pp.feedName))), [filteredProps]);
+const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAddress) || null, [groups, selectedAddress]);
   const center = useMemo(() => { if (!groups.length) return [54.82, 20.45] as [number, number]; return [groups.reduce((s, g) => s + g.lat, 0) / groups.length, groups.reduce((s, g) => s + g.lng, 0) / groups.length] as [number, number]; }, [groups]);
   const filteredAddresses = useMemo(() => { if (!query) return groups; const q = query.toLowerCase(); return groups.filter((g) => g.address.toLowerCase().includes(q) || g.feedName.toLowerCase().includes(q) || (g.complex || '').toLowerCase().includes(q)); }, [groups, query]);
 
