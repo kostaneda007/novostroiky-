@@ -491,7 +491,7 @@ function ComplexesPage() {
           {applied && sel.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-3">
-                <div className="text-sm text-[#4A5D6E]">Найдено: <b>{results.length}</b> квартир в {applied.sel.length} ЖК</div>
+                <div className="text-sm text-[#4A5D6E]">Найдено: <b>{results.length}</b> квартир в {sel.length} ЖК</div>
                 <button onClick={() => setApplied(null)} className="text-sm text-[#0F766E] hover:underline">Сбросить</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
