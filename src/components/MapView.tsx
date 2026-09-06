@@ -447,10 +447,10 @@ function ComplexesPage() {
   return (
     <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5">
       <h1 className="text-2xl md:text-3xl font-serif font-medium mb-4">Жилые комплексы · {filteredComplexes.length}</h1>
-      <div className="sticky top-16 z-20 -mx-4 md:-mx-5 px-4 md:px-5 py-2 mb-4 bg-[#FDF9F3]/95 backdrop-blur border-b border-[#E0D7C8] flex items-center gap-2">
-        <button onClick={apply} className="flex-1 md:flex-none md:px-10 h-12 rounded-full bg-[#7A5900] text-white text-sm font-bold hover:shadow-lg transition">Применить {sel.length ? '(' + sel.length + ' ЖК)' : ''}</button>
-        <button onClick={() => { setSel([]); setApplied(false); setCity(''); setFeed(''); setRooms([]); setPriceMin(''); setPriceMax(''); setSeaOnly(false); }} className="h-12 px-5 rounded-full border border-[#E0D7C8] bg-white text-sm font-medium text-[#4C4639]">Сбросить</button>
-        {applied && sel.length > 0 && <span className="ml-auto text-sm text-[#4C4639]">Найдено: <b>{results.length}</b></span>}
+      <div className="sticky top-16 z-20 -mx-4 md:-mx-5 px-4 md:px-5 py-2 mb-4 bg-[#F2F6FA]/95 backdrop-blur border-b border-[#D5E0EA] flex items-center gap-2">
+        <button onClick={apply} className="flex-1 md:flex-none md:px-10 h-12 rounded-full bg-[#0F766E] text-white text-sm font-bold hover:shadow-lg transition">Применить {sel.length ? '(' + sel.length + ' ЖК)' : ''}</button>
+        <button onClick={() => { setSel([]); setApplied(false); setCity(''); setFeed(''); setRooms([]); setPriceMin(''); setPriceMax(''); setSeaOnly(false); }} className="h-12 px-5 rounded-full border border-[#D5E0EA] bg-white text-sm font-medium text-[#4A5D6E]">Сбросить</button>
+        {applied && sel.length > 0 && <span className="ml-auto text-sm text-[#4A5D6E]">Найдено: <b>{results.length}</b></span>}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
