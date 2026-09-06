@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { YMaps, Map as YMap, Placemark, ZoomControl } from '@pbe/react-yandex-maps';
 import properties from '../data/properties.json';
 
@@ -240,7 +240,9 @@ function MapScreen() {
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(typeof window !== "undefined" ? window.innerWidth >= 768 : true);
+  const [sheetFull, setSheetFull] = useState(false);
+  const sheetTouch = useRef<number | null>(null);
 
   const cities = useMemo(() => { const c: Record<string, number> = {}; (properties as Property[]).forEach((p) => { if (p.city && p.city !== 'Другое') c[p.city] = (c[p.city] || 0) + 1; }); return Object.keys(c).sort((a, b) => c[b] - c[a]); }, []);
   
@@ -286,7 +288,12 @@ const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAdd
             ))}
           </YMap>
         </div>
-        <aside className={(selectedGroup ? 'sheet fixed inset-x-0 bottom-0 top-14 z-30 rounded-t-3xl shadow-2xl md:static md:inset-auto md:z-auto md:rounded-none md:shadow-none ' : '') + 'flex-1 min-h-0 w-full md:flex-none md:w-[480px] bg-[#F4EEE3] border-t md:border-t-0 md:border-l border-[#E0D7C8] flex flex-col'}>
+        <aside className={(selectedGroup ? (sheetFull ? 'fixed inset-x-0 bottom-0 top-14 z-30 rounded-t-3xl shadow-2xl md:static md:z-auto md:rounded-none md:shadow-none ' : 'fixed inset-x-0 bottom-0 z-30 rounded-t-3xl shadow-2xl md:static md:z-auto md:rounded-none md:shadow-none ') : '') + 'flex-1 min-h-0 w-full md:flex-none md:w-[480px] bg-[#F4EEE3] border-t md:border-t-0 md:border-l border-[#E0D7C8] flex flex-col'} style={selectedGroup && !sheetFull ? { top: '45dvh' } : undefined}>
+          {selectedGroup && (
+            <div className="md:hidden flex justify-center py-2 shrink-0 cursor-grab" onClick={() => setSheetFull((v) => !v)} onTouchStart={(e) => { sheetTouch.current = e.touches[0].clientY; }} onTouchEnd={(e) => { if (sheetTouch.current == null) return; const dy = e.changedTouches[0].clientY - sheetTouch.current; if (dy < -40) setSheetFull(true); else if (dy > 40) setSheetFull(false); sheetTouch.current = null; }}>
+              <div className="w-10 h-1.5 rounded-full bg-[#D8CDBB]" />
+            </div>
+          )}
           {selectedGroup ? (
             <AddressCards group={selectedGroup} onClose={() => setSelectedAddress(null)} />
           ) : (
@@ -392,60 +399,107 @@ function ComparePage() {
 }
 
 function ComplexesPage() {
-  const [sel, setSel] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [city, setCity] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [feed, setFeed] = useState('');
+  const [rooms, setRooms] = useState<number[]>([]);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
   const [seaOnly, setSeaOnly] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sel, setSel] = useState<string[]>([]);
+  const [applied, setApplied] = useState<{ sel: string[]; rooms: number[]; priceMin: string; priceMax: string; seaOnly: boolean } | null>(null);
+  const all = properties as Property[];
   const complexes = useMemo(() => {
     const m: Record<string, Property[]> = {};
-    (properties as Property[]).forEach((p) => { if (p.complex) (m[p.complex] = m[p.complex] || []).push(p); });
+    all.forEach((p) => { if (p.complex) (m[p.complex] = m[p.complex] || []).push(p); });
     return Object.entries(m).map(([name, items]) => {
       const pos = items.map((p) => p.price).filter((x) => x > 0);
       const sea = items.map((p) => p.sea).filter((x) => x != null) as number[];
-      return { name, items, minPrice: pos.length ? Math.min(...pos) : 0, city: items[0].city, sea: sea.length ? Math.min(...sea) : null };
+      return { name, items, minPrice: pos.length ? Math.min(...pos) : 0, city: items[0].city, feed: items[0].feedName, sea: sea.length ? Math.min(...sea) : null };
     }).sort((a, b) => b.items.length - a.items.length);
-  }, []);
+  }, [all]);
   const cities = useMemo(() => Array.from(new Set(complexes.map((c) => c.city).filter(Boolean))).sort(), [complexes]);
-  const filtered = complexes.filter((c) => {
+  const feeds = useMemo(() => Array.from(new Set(complexes.map((c) => c.feed))), [complexes]);
+  const filteredComplexes = complexes.filter((c) => {
     if (query && !(c.name + ' ' + c.city).toLowerCase().includes(query.toLowerCase())) return false;
     if (city && c.city !== city) return false;
-    if (maxPrice && c.minPrice > parseFloat(maxPrice) * 1e6) return false;
+    if (feed && c.feed !== feed) return false;
     if (seaOnly && !(c.sea != null && c.sea <= 5000)) return false;
+    if (priceMax && c.minPrice > parseFloat(priceMax) * 1e6) return false;
     return true;
   });
-  const cur = filtered.find((c) => c.name === sel) || null;
+  const toggle = (n: string) => setSel((v) => (v.includes(n) ? v.filter((x) => x !== n) : [...v, n]));
+  const apply = () => { setApplied({ sel, rooms, priceMin, priceMax, seaOnly }); if (window.innerWidth < 768) setTimeout(() => document.getElementById('jk-results')?.scrollIntoView({ behavior: 'smooth' }), 50); };
+  const results = useMemo(() => {
+    if (!applied || applied.sel.length === 0) return [];
+    return all.filter((p) => {
+      if (!applied.sel.includes(p.complex || '')) return false;
+      if (applied.rooms.length && !applied.rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;
+      const mn = parseFloat(applied.priceMin) || 0; const mx = parseFloat(applied.priceMax) || Infinity;
+      if (p.price > 0 && (p.price < mn * 1e6 || p.price > mx * 1e6)) return false;
+      if (applied.seaOnly && !(p.sea != null && p.sea <= 5000)) return false;
+      return true;
+    }).sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
+  }, [applied, all]);
+  const activeCount = rooms.length + (city ? 1 : 0) + (feed ? 1 : 0) + (seaOnly ? 1 : 0) + (priceMin ? 1 : 0) + (priceMax ? 1 : 0);
   return (
-    <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5">
-      <h1 className="text-2xl font-serif font-medium mb-4">Жилые комплексы · {filtered.length}</h1>
-      <div className="flex flex-col md:flex-row gap-4 md:h-[calc(100vh-170px)]">
-        <aside className="md:w-[360px] shrink-0 flex flex-col gap-2 md:overflow-y-auto md:pr-1">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск ЖК..." className="w-full h-11 px-4 rounded-xl bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
-          <div className="grid grid-cols-2 gap-2">
-            <select value={city} onChange={(e) => setCity(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
-            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" placeholder="Цена до, млн" className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm" />
-          </div>
-          <button onClick={() => setSeaOnly(!seaOnly)} className={'h-11 px-4 rounded-xl border text-sm font-medium transition ' + (seaOnly ? 'bg-[#E0F2FE] border-[#0369A1] text-[#0369A1]' : 'bg-white border-[#E0D7C8] text-[#4C4639]')}>🌊 Только у моря</button>
-          <div className="space-y-2 mt-1">
-            {filtered.map((c) => (
-              <button key={c.name} onClick={() => setSel(c.name === sel ? null : c.name)} className={'w-full text-left rounded-[20px] border p-4 transition ' + (sel === c.name ? 'bg-[#FFDEA6] border-[#7A5900]' : 'bg-white border-[#E0D7C8] hover:shadow-md')}>
-                <div className="font-bold text-[#7A5900]">«{c.name}»</div>
-                <div className="text-sm mt-0.5">{c.city}</div>
+    <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5 pb-24 md:pb-8">
+      <h1 className="text-2xl md:text-3xl font-serif font-medium mb-4">Жилые комплексы · {filteredComplexes.length}</h1>
+      <div className="flex flex-col md:flex-row gap-4">
+        <aside className="md:w-[380px] shrink-0 space-y-3">
+          <button onClick={() => setFiltersOpen(!filtersOpen)} className="w-full flex items-center justify-between h-12 px-4 rounded-2xl bg-white border border-[#E0D7C8] text-sm font-medium">
+            <span>Фильтры{activeCount ? ' · ' + activeCount : ''}</span>
+            <svg viewBox="0 0 24 24" className={'w-4 h-4 transition ' + (filtersOpen ? 'rotate-180' : '')} fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          {filtersOpen && (
+            <div className="rounded-2xl bg-white border border-[#E0D7C8] p-3 space-y-2">
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск ЖК..." className="w-full h-11 px-4 rounded-xl bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+              <div className="grid grid-cols-2 gap-2">
+                <select value={city} onChange={(e) => setCity(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={feed} onChange={(e) => setFeed(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все застройщики</option>{feeds.map((f) => <option key={f} value={f}>{f}</option>)}</select>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">{ROOM_OPTIONS.map((r) => <Chip key={r} active={rooms.includes(r)} onClick={() => setRooms((v) => (v.includes(r) ? v.filter((x) => x !== r) : [...v, r]))}>{roomLabel(r)}</Chip>)}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <input value={priceMin} onChange={(e) => setPriceMin(e.target.value)} type="number" placeholder="Цена от, млн" className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm" />
+                <input value={priceMax} onChange={(e) => setPriceMax(e.target.value)} type="number" placeholder="до, млн" className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm" />
+              </div>
+              <button onClick={() => setSeaOnly(!seaOnly)} className={'w-full h-11 px-4 rounded-xl border text-sm font-medium transition ' + (seaOnly ? 'bg-[#E0F2FE] border-[#0369A1] text-[#0369A1]' : 'bg-white border-[#E0D7C8] text-[#4C4639]')}>🌊 Только у моря</button>
+            </div>
+          )}
+          <div className="space-y-2 md:max-h-[calc(100vh-240px)] md:overflow-y-auto md:pr-1">
+            {filteredComplexes.map((c) => (
+              <button key={c.name} onClick={() => toggle(c.name)} className={'w-full text-left rounded-2xl border p-4 transition relative ' + (sel.includes(c.name) ? 'border-[#7A5900] bg-[#FFDEA6]/40 shadow-md' : 'bg-white border-[#E0D7C8] hover:shadow-md')}>
+                {sel.includes(c.name) && <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#7A5900] text-white text-xs flex items-center justify-center">✓</span>}
+                <div className="font-bold text-[#7A5900] pr-8">«{c.name}»</div>
+                <div className="text-sm mt-0.5">{c.city} · {c.feed}</div>
                 <div className="text-xs text-[#4C4639] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
               </button>
             ))}
-            {filtered.length === 0 && <div className="text-center text-sm text-[#4C4639] py-8">Ничего не найдено</div>}
+            {filteredComplexes.length === 0 && <div className="text-center text-sm text-[#4C4639] py-8">Ничего не найдено</div>}
+            <button onClick={apply} className="hidden md:block w-full h-12 rounded-full bg-[#7A5900] text-white text-sm font-bold hover:shadow-lg transition">Применить ({sel.length})</button>
           </div>
         </aside>
-        <section className="flex-1 md:overflow-y-auto">
-          {cur ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {cur.items.map((p) => <PropertyCard key={p.id} p={p} />)}
-            </div>
+        <section id="jk-results" className="flex-1 min-w-0">
+          {applied && applied.sel.length > 0 ? (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm text-[#4C4639]">Найдено: <b>{results.length}</b> квартир в {applied.sel.length} ЖК</div>
+                <button onClick={() => setApplied(null)} className="text-sm text-[#7A5900] hover:underline">Сбросить</button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                {results.map((p) => <PropertyCard key={p.id} p={p} />)}
+              </div>
+              {results.length === 0 && <div className="rounded-2xl bg-white border border-[#E0D7C8] p-8 text-center text-sm text-[#4C4639]">Нет квартир по выбранным условиям</div>}
+            </>
           ) : (
-            <div className="h-full min-h-[300px] flex items-center justify-center rounded-[28px] bg-white border border-[#E0D7C8] text-[#4C4639]">← Выберите жилой комплекс слева</div>
+            <div className="h-full min-h-[300px] flex items-center justify-center rounded-[28px] bg-white border border-[#E0D7C8] text-[#4C4639] text-sm text-center p-6">Отметьте один или несколько комплексов и нажмите «Применить» — здесь появятся квартиры</div>
           )}
         </section>
+      </div>
+      <div className="fixed bottom-0 inset-x-0 z-30 md:hidden bg-white/95 backdrop-blur border-t border-[#E0D7C8] p-3 flex gap-2">
+        <button onClick={() => setSel([])} className="h-12 px-4 rounded-full border border-[#E0D7C8] text-sm font-medium text-[#4C4639]">Сброс</button>
+        <button onClick={apply} disabled={sel.length === 0} className={'flex-1 h-12 rounded-full text-sm font-bold transition ' + (sel.length ? 'bg-[#7A5900] text-white' : 'bg-[#E0D7C8] text-[#7E7669]')}>Применить {sel.length ? '(' + sel.length + ')' : ''}</button>
       </div>
     </main>
   );
