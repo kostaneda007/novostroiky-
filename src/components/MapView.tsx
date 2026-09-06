@@ -50,10 +50,10 @@ function Header({ hash }: { hash: string }) {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-[#D5E0EA]">
       <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-3">
-        <a href="#/" className="font-serif text-lg font-medium whitespace-nowrap">Новостройки <span className="text-[#0E4C77] font-bold">39</span></a>
+        <a href="#/" className="font-serif text-lg font-medium whitespace-nowrap">Новостройки <span className="text-[#0F766E] font-bold">39</span></a>
         <nav className="hidden md:flex items-center gap-1">
-          {nav.map((n) => <a key={n.h} href={n.h} className={'px-3 py-2 rounded-full text-sm font-medium transition ' + (act(n.h) ? 'bg-[#CBE5FA] text-[#082A44]' : 'text-[#4A5D6E] hover:bg-[#E7EEF5]')}>{n.l}{n.h === '#/favorites' ? '' : n.h === '#/compare' && cmp.length > 0 ? ' · ' + cmp.length : ''}</a>)}
-          <a href="#/favorites" className={'ml-1 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 ' + (hash.indexOf('#/favorites') === 0 ? 'bg-[#CBE5FA] text-[#082A44]' : 'text-[#0E4C77] hover:bg-[#E7EEF5]')}><HeartIcon filled={favs.length > 0} /> {favs.length}</a>
+          {nav.map((n) => <a key={n.h} href={n.h} className={'px-3 py-2 rounded-full text-sm font-medium transition ' + (act(n.h) ? 'bg-[#CCFBF1] text-[#042F2E]' : 'text-[#4A5D6E] hover:bg-[#E7EEF5]')}>{n.l}{n.h === '#/favorites' ? '' : n.h === '#/compare' && cmp.length > 0 ? ' · ' + cmp.length : ''}</a>)}
+          <a href="#/favorites" className={'ml-1 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 ' + (hash.indexOf('#/favorites') === 0 ? 'bg-[#CCFBF1] text-[#042F2E]' : 'text-[#0F766E] hover:bg-[#E7EEF5]')}><HeartIcon filled={favs.length > 0} /> {favs.length}</a>
         </nav>
         <button className="md:hidden w-12 h-12 -mr-2 rounded-full flex items-center justify-center hover:bg-[#E7EEF5]" onClick={() => setOpen(!open)} aria-label="Меню">
           <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
@@ -67,7 +67,7 @@ function Header({ hash }: { hash: string }) {
               {n.h === '#/compare' && cmp.length > 0 && <span className="text-base text-[#0369A1]">· {cmp.length}</span>}
             </a>
           ))}
-          <a href="#/favorites" onClick={() => setOpen(false)} className="py-4 text-lg font-medium text-[#0E4C77] flex items-center justify-between">Избранное<span className="text-base">· {favs.length}</span></a>
+          <a href="#/favorites" onClick={() => setOpen(false)} className="py-4 text-lg font-medium text-[#0F766E] flex items-center justify-between">Избранное<span className="text-base">· {favs.length}</span></a>
         </nav>
       )}
     </header>
@@ -77,7 +77,7 @@ function Header({ hash }: { hash: string }) {
 function isHeadingLine(l: string) { return l.length <= 42 && /[А-ЯA-Z]{3,}/.test(l) && l === l.toUpperCase(); }
 function isEmojiLine(l: string) { return /^[\u{1F000}-\u{1FAFF}\u{2190}-\u{2BFF}\u{2705}\u{FE0F}•✔⚠✳]/u.test(l); }
 function Description({ text }: { text: string }) {
-  return <div>{text.split('\n').map((l, i) => { const t = l.trim(); if (!t) return <div key={i} className="h-2" />; if (isHeadingLine(t)) return <h4 key={i} className="text-sm font-bold tracking-wide text-[#0E4C77] mt-3 mb-1">{t}</h4>; return <p key={i} className={'py-0.5 text-[15px] leading-relaxed ' + (isEmojiLine(t) ? 'text-[#0D1B26]' : 'text-[#4A5D6E]')}>{t}</p>; })}</div>;
+  return <div>{text.split('\n').map((l, i) => { const t = l.trim(); if (!t) return <div key={i} className="h-2" />; if (isHeadingLine(t)) return <h4 key={i} className="text-sm font-bold tracking-wide text-[#0F766E] mt-3 mb-1">{t}</h4>; return <p key={i} className={'py-0.5 text-[15px] leading-relaxed ' + (isEmojiLine(t) ? 'text-[#0D1B26]' : 'text-[#4A5D6E]')}>{t}</p>; })}</div>;
 }
 
 function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
@@ -92,14 +92,14 @@ function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
       <div className="relative rounded-[28px] overflow-hidden bg-[#E7EEF5] border border-[#D5E0EA]">
         <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={alt} onError={() => markBad(good[idx])} className="w-full h-[300px] sm:h-[440px] object-contain" />
         {good.length > 1 && (<>
-          <button onClick={() => setI((idx - 1 + good.length) % good.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#CBE5FA]"><Chevron dir="l" /></button>
-          <button onClick={() => setI((idx + 1) % good.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#CBE5FA]"><Chevron dir="r" /></button>
+          <button onClick={() => setI((idx - 1 + good.length) % good.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#CCFBF1]"><Chevron dir="l" /></button>
+          <button onClick={() => setI((idx + 1) % good.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/95 shadow-md flex items-center justify-center hover:bg-[#CCFBF1]"><Chevron dir="r" /></button>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-[#0D1B26]/55 text-white text-xs font-medium">{idx + 1} из {good.length}</div>
         </>)}
       </div>
       {good.length > 1 && (
         <div className="flex gap-2 overflow-x-auto mt-3 pb-1">
-          {good.map((u, k) => <button key={u} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === idx ? 'border-[#0E4C77]' : 'border-transparent opacity-70')}><img referrerPolicy="no-referrer" loading="lazy" src={u} alt="" onError={() => markBad(u)} className="w-20 h-14 object-cover" /></button>)}
+          {good.map((u, k) => <button key={u} onClick={() => setI(k)} className={'shrink-0 rounded-xl overflow-hidden border-2 ' + (k === idx ? 'border-[#0F766E]' : 'border-transparent opacity-70')}><img referrerPolicy="no-referrer" loading="lazy" src={u} alt="" onError={() => markBad(u)} className="w-20 h-14 object-cover" /></button>)}
         </div>
       )}
     </div>
@@ -108,7 +108,7 @@ function PhotoSlider({ images, alt }: { images: string[]; alt: string }) {
 
 function FavButton({ id }: { id: string }) {
   const favs = useStore(FAV_KEY); const on = favs.includes(id);
-  return <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStore(FAV_KEY, id); }} aria-label="В избранное" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#0E4C77] border-[#0E4C77] text-white' : 'bg-white border-[#D5E0EA] text-[#0E4C77] hover:border-[#0E4C77]')}><HeartIcon filled={on} /></button>;
+  return <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleStore(FAV_KEY, id); }} aria-label="В избранное" className={'w-10 h-10 rounded-full flex items-center justify-center border transition ' + (on ? 'bg-[#0F766E] border-[#0F766E] text-white' : 'bg-white border-[#D5E0EA] text-[#0F766E] hover:border-[#0F766E]')}><HeartIcon filled={on} /></button>;
 }
 function CompareButton({ id }: { id: string }) {
   const cmp = useStore(CMP_KEY); const on = cmp.includes(id);
@@ -117,8 +117,8 @@ function CompareButton({ id }: { id: string }) {
 function PhoneButton() {
   const [show, setShow] = useState(false);
   return show
-    ? <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="w-full h-12 px-4 rounded-full bg-[#0E4C77] text-white text-sm font-medium flex items-center justify-center whitespace-nowrap">{PHONE}</a>
-    : <button onClick={() => setShow(true)} className="w-full h-12 px-4 rounded-full bg-[#0E4C77] text-white text-sm font-medium whitespace-nowrap">Показать телефон</button>;
+    ? <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="w-full h-12 px-4 rounded-full bg-[#0F766E] text-white text-sm font-medium flex items-center justify-center whitespace-nowrap">{PHONE}</a>
+    : <button onClick={() => setShow(true)} className="w-full h-12 px-4 rounded-full bg-[#0F766E] text-white text-sm font-medium whitespace-nowrap">Показать телефон</button>;
 }
 
 function complexOf(items: Property[]) {
@@ -141,7 +141,7 @@ function PropertyCard({ p }: { p: Property }) {
   const idx = good.length ? i % good.length : 0;
   const block = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); };
   return (
-    <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="group anim-card block rounded-[24px] bg-white border border-[#D5E0EA] shadow-sm p-3 hover:shadow-lg hover:border-[#0E4C77] transition">
+    <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="group anim-card block rounded-[24px] bg-white border border-[#D5E0EA] shadow-sm p-3 hover:shadow-lg hover:border-[#0F766E] transition">
       {good.length ? (
         <div className="relative rounded-2xl overflow-hidden bg-[#E7EEF5]">
           <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -154,7 +154,7 @@ function PropertyCard({ p }: { p: Property }) {
       ) : <div className="w-full h-40 bg-[#E7EEF5] rounded-2xl flex items-center justify-center text-[#6B7B8A] text-sm">нет фото</div>}
       <div className="px-1.5 pt-3 pb-1 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <div className="text-2xl font-bold text-[#0E4C77]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
+          <div className="text-2xl font-bold text-[#0F766E]">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</div>
           <div className="flex gap-1.5"><FavButton id={p.id} /><CompareButton id={p.id} /></div>
         </div>
         <div className="text-[15px] font-medium">{p.rooms === 0 ? 'Студия' : p.rooms + '-комн.'} квартира · {p.area > 0 ? String(p.area).replace('.', ',') + ' м²' : ''} {p.floor ? '· ' + p.floor + (p.totalFloors ? '/' + p.totalFloors : '') + ' эт.' : ''}</div>
@@ -166,7 +166,7 @@ function PropertyCard({ p }: { p: Property }) {
         </div>
         <div className="flex gap-2 pt-2">
           <div onClick={block} className="flex-1 min-w-0"><PhoneButton /></div>
-          <a href={flexbeUrl(p)} target="_blank" rel="noopener" onClick={block} aria-label="Заявка" className="w-12 h-12 rounded-2xl bg-[#DDE8F2] flex items-center justify-center text-[#0D1B26] hover:bg-[#CBE5FA] transition"><ChatIcon /></a>
+          <a href={flexbeUrl(p)} target="_blank" rel="noopener" onClick={block} aria-label="Заявка" className="w-12 h-12 rounded-2xl bg-[#DDE8F2] flex items-center justify-center text-[#0D1B26] hover:bg-[#CCFBF1] transition"><ChatIcon /></a>
         </div>
       </div>
     </a>
@@ -191,7 +191,7 @@ function AddressCards({ group, onClose }: { group: Group; onClose: () => void })
 }
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button onClick={onClick} className={'shrink-0 h-9 px-4 rounded-full border text-sm font-medium transition ' + (active ? 'bg-[#CBE5FA] border-[#CBE5FA] text-[#082A44]' : 'bg-white border-[#D5E0EA] text-[#4A5D6E] hover:border-[#0E4C77]')}>{children}</button>;
+  return <button onClick={onClick} className={'shrink-0 h-9 px-4 rounded-full border text-sm font-medium transition ' + (active ? 'bg-[#CCFBF1] border-[#CCFBF1] text-[#042F2E]' : 'bg-white border-[#D5E0EA] text-[#4A5D6E] hover:border-[#0F766E]')}>{children}</button>;
 }
 
 function AddressList({ groups, total, query, setQuery, onSelect, filters, setFilters, cities, complexes, feeds, filtersOpen, setFiltersOpen }: { groups: Group[]; total: number; query: string; setQuery: (v: string) => void; onSelect: (a: string) => void; filters: Filters; setFilters: (f: Filters) => void; cities: string[]; complexes: string[]; feeds: string[]; filtersOpen: boolean; setFiltersOpen: (b: boolean) => void }) {
@@ -208,7 +208,7 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
       </div>
       {filtersOpen && (
         <div className="px-4 pb-3 space-y-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full py-3 px-5 rounded-full bg-white border border-[#D5E0EA] text-sm focus:outline-none focus:border-[#0E4C77]" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full py-3 px-5 rounded-full bg-white border border-[#D5E0EA] text-sm focus:outline-none focus:border-[#0F766E]" />
           <div className="grid grid-cols-2 gap-2">
             <select value={filters.city || ''} onChange={(e) => { const c = e.target.value || null; setFilters({ ...filters, city: c, complex: null }); }} className="h-11 px-3 rounded-xl bg-white border border-[#D5E0EA] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
             <select value={filters.complex || ''} onChange={(e) => setFilters({ ...filters, complex: e.target.value || null })} className="h-11 px-3 rounded-xl bg-white border border-[#D5E0EA] text-sm"><option value="">Все ЖК</option>{complexes.map((c) => <option key={c} value={c}>{c}</option>)}</select>
@@ -218,14 +218,14 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
           <div className="flex gap-2 items-center">
             <input value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} type="number" placeholder="Цена от, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#D5E0EA] text-sm" />
             <input value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} type="number" placeholder="до, млн" className="flex-1 min-w-0 h-10 px-4 rounded-full bg-white border border-[#D5E0EA] text-sm" />
-            {active && <button onClick={() => setFilters(EMPTY_FILTERS)} className="shrink-0 h-10 px-4 rounded-full bg-[#0E4C77] text-white text-sm font-medium">Сброс</button>}
+            {active && <button onClick={() => setFilters(EMPTY_FILTERS)} className="shrink-0 h-10 px-4 rounded-full bg-[#0F766E] text-white text-sm font-medium">Сброс</button>}
           </div>
         </div>
       )}
       <div className="stagger flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {sorted.map((g) => (
           <button key={g.address} onClick={() => onSelect(g.address)} className="w-full text-left rounded-[20px] bg-white border border-[#D5E0EA] px-4 py-3 hover:shadow-md transition">
-            <div className="font-bold text-[#0E4C77] truncate">{g.complex ? '«' + g.complex + '»' : g.address}</div>
+            <div className="font-bold text-[#0F766E] truncate">{g.complex ? '«' + g.complex + '»' : g.address}</div>
             <div className="text-sm truncate mt-0.5">{g.address}</div>
             <div className="text-xs text-[#4A5D6E] mt-0.5">{g.items.length} кв. · {priceSuffix(g.minPrice)} · {g.feedName}</div>
           </button>
@@ -326,7 +326,7 @@ function PropertyPage({ property }: { property: Property }) {
       <PhotoSlider images={property.images} alt={property.title} />
       <div className="rounded-[28px] bg-white border border-[#D5E0EA] shadow-sm p-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="text-[#0E4C77] font-bold text-3xl">{property.price > 0 ? formatPrice(property.price) : 'Цена по запросу'}</div>
+          <div className="text-[#0F766E] font-bold text-3xl">{property.price > 0 ? formatPrice(property.price) : 'Цена по запросу'}</div>
           <div className="flex gap-1.5"><FavButton id={property.id} /><CompareButton id={property.id} /></div>
         </div>
         <div className="text-lg mt-1">{property.complex ? 'ЖК «' + property.complex + '» · ' : ''}{property.address}</div>
@@ -338,8 +338,8 @@ function PropertyPage({ property }: { property: Property }) {
           <Stat label="Этаж" value={property.floor ? property.floor + (property.totalFloors ? '/' + property.totalFloors : '') : '—'} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="py-3.5 rounded-full bg-[#0E4C77] text-white font-medium text-center hover:shadow-lg">Позвонить: {PHONE}</a>
-          <a href={flexbeUrl(property)} target="_blank" rel="noopener" className="py-3.5 rounded-full bg-[#CBE5FA] text-[#082A44] font-medium text-center hover:shadow-lg">Оставить заявку на просмотр</a>
+          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="py-3.5 rounded-full bg-[#0F766E] text-white font-medium text-center hover:shadow-lg">Позвонить: {PHONE}</a>
+          <a href={flexbeUrl(property)} target="_blank" rel="noopener" className="py-3.5 rounded-full bg-[#CCFBF1] text-[#042F2E] font-medium text-center hover:shadow-lg">Оставить заявку на просмотр</a>
         </div>
       </div>
       {property.description && <div className="rounded-[28px] bg-white border border-[#D5E0EA] shadow-sm p-6"><h3 className="text-sm font-medium uppercase tracking-wider text-[#4A5D6E] mb-3">Описание</h3><Description text={property.description} /></div>}
@@ -359,7 +359,7 @@ function FavoritesPage() {
   return (
     <main className="max-w-4xl mx-auto px-5 py-6">
       <h1 className="text-2xl font-serif font-medium mb-4">Избранное · {items.length}</h1>
-      {items.length === 0 ? <div className="rounded-[28px] bg-white border border-[#D5E0EA] p-10 text-center text-[#4A5D6E]">Пока пусто. Нажимайте ❤️ на карточках.<div className="mt-4"><a href="#/" className="text-[#0E4C77] font-medium hover:underline">← К карте</a></div></div> : (
+      {items.length === 0 ? <div className="rounded-[28px] bg-white border border-[#D5E0EA] p-10 text-center text-[#4A5D6E]">Пока пусто. Нажимайте ❤️ на карточках.<div className="mt-4"><a href="#/" className="text-[#0F766E] font-medium hover:underline">← К карте</a></div></div> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{items.map((p) => <PropertyCard key={p.id} p={p} />)}</div>
       )}
     </main>
@@ -388,7 +388,7 @@ function ComparePage() {
             <thead><tr><th className="text-left p-4 text-[#4A5D6E] font-medium w-36">Параметр</th>{items.map((p) => (
               <th key={p.id} className="p-4 align-top min-w-[220px]">
                 {p.images[0] && <img referrerPolicy="no-referrer" loading="lazy" src={p.images[0]} alt="" className="w-full h-40 object-contain rounded-xl mb-2 bg-[#E7EEF5]" />}
-                <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block font-bold text-[#0E4C77] hover:underline">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
+                <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block font-bold text-[#0F766E] hover:underline">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
                 <button onClick={() => toggleStore(CMP_KEY, p.id)} className="text-xs text-[#4A5D6E] hover:text-red-600 mt-1">убрать ✕</button>
               </th>))}</tr></thead>
             <tbody>{rows.map(([l, fn]) => <tr key={l} className="border-t border-[#E7EEF5]"><td className="p-4 text-[#4A5D6E]">{l}</td>{items.map((p) => <td key={p.id} className="p-4 text-center">{fn(p)}</td>)}</tr>)}</tbody>
@@ -455,7 +455,7 @@ function ComplexesPage() {
           </button>
           {filtersOpen && (
             <div className="rounded-2xl bg-white border border-[#D5E0EA] p-3 space-y-2">
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск ЖК..." className="w-full h-11 px-4 rounded-xl bg-white border border-[#D5E0EA] text-sm focus:outline-none focus:border-[#0E4C77]" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск ЖК..." className="w-full h-11 px-4 rounded-xl bg-white border border-[#D5E0EA] text-sm focus:outline-none focus:border-[#0F766E]" />
               <div className="grid grid-cols-2 gap-2">
                 <select value={city} onChange={(e) => setCity(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#D5E0EA] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
                 <select value={feed} onChange={(e) => setFeed(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#D5E0EA] text-sm"><option value="">Все застройщики</option>{feeds.map((f) => <option key={f} value={f}>{f}</option>)}</select>
@@ -470,15 +470,15 @@ function ComplexesPage() {
           )}
           <div className="space-y-2 md:max-h-[calc(100vh-240px)] md:overflow-y-auto md:pr-1">
             {filteredComplexes.map((c) => (
-              <button key={c.name} onClick={() => toggle(c.name)} className={'w-full text-left rounded-2xl border p-4 transition relative ' + (sel.includes(c.name) ? 'border-[#0E4C77] bg-[#CBE5FA]/40 shadow-md' : 'bg-white border-[#D5E0EA] hover:shadow-md')}>
-                {sel.includes(c.name) && <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#0E4C77] text-white text-xs flex items-center justify-center">✓</span>}
-                <div className="font-bold text-[#0E4C77] pr-8">«{c.name}»</div>
+              <button key={c.name} onClick={() => toggle(c.name)} className={'w-full text-left rounded-2xl border p-4 transition relative ' + (sel.includes(c.name) ? 'border-[#0F766E] bg-[#CCFBF1]/40 shadow-md' : 'bg-white border-[#D5E0EA] hover:shadow-md')}>
+                {sel.includes(c.name) && <span className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#0F766E] text-white text-xs flex items-center justify-center">✓</span>}
+                <div className="font-bold text-[#0F766E] pr-8">«{c.name}»</div>
                 <div className="text-sm mt-0.5">{c.city} · {c.feed}</div>
                 <div className="text-xs text-[#4A5D6E] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
               </button>
             ))}
             {filteredComplexes.length === 0 && <div className="text-center text-sm text-[#4A5D6E] py-8">Ничего не найдено</div>}
-            <button onClick={apply} className="hidden md:block w-full h-12 rounded-full bg-[#0E4C77] text-white text-sm font-bold hover:shadow-lg transition">Применить ({sel.length})</button>
+            <button onClick={apply} className="hidden md:block w-full h-12 rounded-full bg-[#0F766E] text-white text-sm font-bold hover:shadow-lg transition">Применить ({sel.length})</button>
           </div>
         </aside>
         <section id="jk-results" className="flex-1 min-w-0">
@@ -486,7 +486,7 @@ function ComplexesPage() {
             <>
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm text-[#4A5D6E]">Найдено: <b>{results.length}</b> квартир в {applied.sel.length} ЖК</div>
-                <button onClick={() => setApplied(null)} className="text-sm text-[#0E4C77] hover:underline">Сбросить</button>
+                <button onClick={() => setApplied(null)} className="text-sm text-[#0F766E] hover:underline">Сбросить</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {results.map((p) => <PropertyCard key={p.id} p={p} />)}
@@ -500,7 +500,7 @@ function ComplexesPage() {
       </div>
       <div className="fixed bottom-0 inset-x-0 z-30 md:hidden bg-white/95 backdrop-blur border-t border-[#D5E0EA] p-3 flex gap-2">
         <button onClick={() => setSel([])} className="h-12 px-4 rounded-full border border-[#D5E0EA] text-sm font-medium text-[#4A5D6E]">Сброс</button>
-        <button onClick={apply} disabled={sel.length === 0} className={'flex-1 h-12 rounded-full text-sm font-bold transition ' + (sel.length ? 'bg-[#0E4C77] text-white' : 'bg-[#D5E0EA] text-[#6B7B8A]')}>Применить {sel.length ? '(' + sel.length + ')' : ''}</button>
+        <button onClick={apply} disabled={sel.length === 0} className={'flex-1 h-12 rounded-full text-sm font-bold transition ' + (sel.length ? 'bg-[#0F766E] text-white' : 'bg-[#D5E0EA] text-[#6B7B8A]')}>Применить {sel.length ? '(' + sel.length + ')' : ''}</button>
       </div>
     </main>
   );
@@ -580,7 +580,7 @@ function AnalyticsPage() {
         <Stat label="ЖК в топе" value={String(stats.topComplexes.length)} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Card title="💰 Цена м² по городам">{stats.cities.map((c) => <Bar key={c.c} label={c.c + ' · ' + c.n + ' кв.'} value={c.v} display={f(c.v) + ' ₽'} max={stats.maxCity} color="#0E4C77" />)}</Card>
+        <Card title="💰 Цена м² по городам">{stats.cities.map((c) => <Bar key={c.c} label={c.c + ' · ' + c.n + ' кв.'} value={c.v} display={f(c.v) + ' ₽'} max={stats.maxCity} color="#0F766E" />)}</Card>
         <Card title="🚪 Цена м² по комнатам">{stats.rooms.map((r) => <Bar key={r.r} label={roomLabel(r.r) + ' · ' + r.n + ' кв.'} value={r.v} display={f(r.v) + ' ₽'} max={stats.maxRooms} color="#B26A00" />)}</Card>
         <Card title="📊 Распределение по бюджету">{stats.budgets.map((b) => <Bar key={b.label} label={b.label} value={b.count} display={String(b.count)} max={stats.maxBudget} color="#0369A1" />)}</Card>
         <Card title="📐 Распределение по площади">{stats.areaDist.map((a) => <Bar key={a.label} label={a.label} value={a.count} display={String(a.count)} max={stats.maxArea} color="#1E7E34" />)}</Card>
@@ -595,16 +595,16 @@ function AnalyticsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {stats.feeds.map((d) => (
             <div key={d.n} className="rounded-2xl bg-[#E7EEF5] p-4">
-              <div className="font-bold text-[#0E4C77]">{d.n}</div>
+              <div className="font-bold text-[#0F766E]">{d.n}</div>
               <div className="text-xs text-[#4A5D6E] mt-1">{d.count} объектов · ср. {d.avgArea.toFixed(0)} м²</div>
               <div className="text-sm font-medium mt-2">от {fM(d.avg)}</div>
             </div>
           ))}
         </div>
       </Card>
-      <div className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#CBE5FA 0%,#F4C870 100%)' }}>
-        <div className="text-2xl font-serif font-bold text-[#082A44]">Нужна персональная подборка?</div>
-        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#0E4C77] text-white font-bold hover:shadow-xl transition">Подобрать квартиру →</a>
+      <div className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#CCFBF1 0%,#F4C870 100%)' }}>
+        <div className="text-2xl font-serif font-bold text-[#042F2E]">Нужна персональная подборка?</div>
+        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#0F766E] text-white font-bold hover:shadow-xl transition">Подобрать квартиру →</a>
       </div>
     </main>
   );
@@ -627,20 +627,20 @@ function BudgetPage() {
 function AboutPage() {
   return (
     <main className="max-w-5xl mx-auto px-4 md:px-5 py-6 space-y-6">
-      <section className="rounded-[32px] p-8 md:p-12 text-white" style={{ background: 'linear-gradient(135deg,#0D1B26 0%,#3d3624 50%,#0E4C77 100%)' }}>
-        <div className="text-sm uppercase tracking-[0.2em] text-[#CBE5FA] mb-2">Агентство элитной недвижимости</div>
-        <h1 className="text-3xl md:text-5xl font-serif font-medium leading-tight">Новостройки <span className="text-[#CBE5FA] font-bold">39</span></h1>
+      <section className="rounded-[32px] p-8 md:p-12 text-white" style={{ background: 'linear-gradient(135deg,#0D1B26 0%,#3d3624 50%,#0F766E 100%)' }}>
+        <div className="text-sm uppercase tracking-[0.2em] text-[#CCFBF1] mb-2">Агентство элитной недвижимости</div>
+        <h1 className="text-3xl md:text-5xl font-serif font-medium leading-tight">Новостройки <span className="text-[#CCFBF1] font-bold">39</span></h1>
         <p className="text-lg md:text-xl text-white/85 mt-4 max-w-3xl leading-relaxed">Персональный подбор премиальных квартир в Калининградской области. Работаем напрямую с ведущими застройщиками побережья — без посредников, без комиссий, с юридическим сопровождением сделки.</p>
         <div className="flex flex-wrap gap-3 mt-6">
-          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="px-6 py-3 rounded-full bg-[#CBE5FA] text-[#082A44] font-bold hover:shadow-xl transition">{PHONE}</a>
+          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="px-6 py-3 rounded-full bg-[#CCFBF1] text-[#042F2E] font-bold hover:shadow-xl transition">{PHONE}</a>
           <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="px-6 py-3 rounded-full bg-white/10 backdrop-blur text-white border border-white/20 font-medium hover:bg-white/20 transition">Персональная подборка →</a>
         </div>
       </section>
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0E4C77]">8+</div><div className="text-xs text-[#4A5D6E] mt-1">лет на рынке</div></div>
-        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0E4C77]">420+</div><div className="text-xs text-[#4A5D6E] mt-1">сделок закрыто</div></div>
-        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0E4C77]">12</div><div className="text-xs text-[#4A5D6E] mt-1">застройщиков</div></div>
-        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0E4C77]">600+</div><div className="text-xs text-[#4A5D6E] mt-1">довольных клиентов</div></div>
+        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0F766E]">8+</div><div className="text-xs text-[#4A5D6E] mt-1">лет на рынке</div></div>
+        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0F766E]">420+</div><div className="text-xs text-[#4A5D6E] mt-1">сделок закрыто</div></div>
+        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0F766E]">12</div><div className="text-xs text-[#4A5D6E] mt-1">застройщиков</div></div>
+        <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4"><div className="text-2xl font-bold text-[#0F766E]">600+</div><div className="text-xs text-[#4A5D6E] mt-1">довольных клиентов</div></div>
       </section>
       <section className="rounded-[28px] bg-white border border-[#D5E0EA] p-6 md:p-8">
         <h2 className="text-2xl font-serif font-medium mb-2">Почему выбирают нас</h2>
@@ -665,7 +665,7 @@ function AboutPage() {
       <section className="rounded-[28px] bg-white border border-[#D5E0EA] p-6 md:p-8">
         <h2 className="text-2xl font-serif font-medium mb-4">Сегменты работы</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-2xl border-2 border-[#0E4C77] p-5"><div className="text-xs uppercase tracking-wider text-[#0E4C77] font-bold">Премиум</div><div className="text-lg font-bold mt-1">от 20 млн ₽</div><div className="text-sm text-[#4A5D6E] mt-2">Пентхаусы и видовые квартиры в Светлогорске и Зеленоградске, апартаменты на первой линии.</div></div>
+          <div className="rounded-2xl border-2 border-[#0F766E] p-5"><div className="text-xs uppercase tracking-wider text-[#0F766E] font-bold">Премиум</div><div className="text-lg font-bold mt-1">от 20 млн ₽</div><div className="text-sm text-[#4A5D6E] mt-2">Пентхаусы и видовые квартиры в Светлогорске и Зеленоградске, апартаменты на первой линии.</div></div>
           <div className="rounded-2xl border border-[#D5E0EA] p-5"><div className="text-xs uppercase tracking-wider text-[#B26A00] font-bold">Бизнес</div><div className="text-lg font-bold mt-1">от 10 млн ₽</div><div className="text-sm text-[#4A5D6E] mt-2">Закрытые жилые комплексы, квартиры с террасами и дизайнерской отделкой.</div></div>
           <div className="rounded-2xl border border-[#D5E0EA] p-5"><div className="text-xs uppercase tracking-wider text-[#4A5D6E] font-bold">Инвестиции</div><div className="text-lg font-bold mt-1">любой бюджет</div><div className="text-sm text-[#4A5D6E] mt-2">Подбор квартир под сдачу в аренду, расчёт доходности, управление объектом.</div></div>
         </div>
@@ -680,21 +680,21 @@ function AboutPage() {
             { n: '04', t: 'Сделка', d: 'Юристы проверяют документы, получаем ипотеку, оформляем ДДУ. Вы платите после регистрации.' },
           ].map((x) => (
             <div key={x.n} className="flex gap-4 items-start rounded-2xl bg-[#F2F6FA] p-4">
-              <div className="text-3xl font-serif font-bold text-[#0E4C77] shrink-0">{x.n}</div>
+              <div className="text-3xl font-serif font-bold text-[#0F766E] shrink-0">{x.n}</div>
               <div><div className="font-bold">{x.t}</div><div className="text-sm text-[#4A5D6E] mt-0.5">{x.d}</div></div>
             </div>
           ))}
         </div>
       </section>
-      <section className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#CBE5FA 0%,#F4C870 100%)' }}>
-        <div className="text-2xl font-serif font-bold text-[#082A44]">Готовы начать подбор?</div>
+      <section className="rounded-[28px] p-8 text-center" style={{ background: 'linear-gradient(135deg,#CCFBF1 0%,#F4C870 100%)' }}>
+        <div className="text-2xl font-serif font-bold text-[#042F2E]">Готовы начать подбор?</div>
         <p className="text-[#4A5D6E] mt-2">Бесплатная консультация и персональная подборка за 48 часов</p>
-        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#0E4C77] text-white font-bold text-lg hover:shadow-xl transition">Записаться на консультацию →</a>
+        <a href="https://coastal-estate.flexbe.ru/" target="_blank" rel="noopener" className="inline-block mt-4 px-8 py-4 rounded-full bg-[#0F766E] text-white font-bold text-lg hover:shadow-xl transition">Записаться на консультацию →</a>
       </section>
       <section className="rounded-[28px] bg-white border border-[#D5E0EA] p-6 md:p-8">
         <h2 className="text-2xl font-serif font-medium mb-4">Контакты</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><div className="text-xs uppercase tracking-wider text-[#4A5D6E]">Телефон</div><a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="text-xl font-bold text-[#0E4C77]">{PHONE}</a></div>
+          <div><div className="text-xs uppercase tracking-wider text-[#4A5D6E]">Телефон</div><a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="text-xl font-bold text-[#0F766E]">{PHONE}</a></div>
           <div><div className="text-xs uppercase tracking-wider text-[#4A5D6E]">Режим работы</div><div className="text-lg font-medium">Ежедневно 9:00–21:00</div></div>
           <div><div className="text-xs uppercase tracking-wider text-[#4A5D6E]">Офис</div><div className="text-sm">г. Калининград, Прегольская наб., 6</div></div>
           <div><div className="text-xs uppercase tracking-wider text-[#4A5D6E]">Показы</div><div className="text-sm">Светлогорск · Зеленоградск · Пионерский</div></div>
@@ -727,19 +727,19 @@ function MortgageCalculator() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div className="lg:col-span-3 space-y-4">
           <div className="rounded-[28px] bg-white border border-[#D5E0EA] p-5 md:p-6">
-            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4A5D6E]">Стоимость</label><div className="text-xl font-bold text-[#0E4C77]">{f(price)} ₽</div></div>
-            <input type="range" min={2000000} max={50000000} step={100000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full accent-[#0E4C77]" />
+            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4A5D6E]">Стоимость</label><div className="text-xl font-bold text-[#0F766E]">{f(price)} ₽</div></div>
+            <input type="range" min={2000000} max={50000000} step={100000} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full accent-[#0F766E]" />
             <div className="flex justify-between text-xs text-[#6B7B8A] mt-1"><span>2 млн</span><span>50 млн</span></div>
           </div>
           <div className="rounded-[28px] bg-white border border-[#D5E0EA] p-5 md:p-6">
-            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4A5D6E]">Взнос</label><div className="text-xl font-bold text-[#0E4C77]">{down}% · {f(price * down / 100)} ₽</div></div>
-            <input type="range" min={0} max={90} step={5} value={down} onChange={(e) => setDown(Number(e.target.value))} className="w-full accent-[#0E4C77]" />
+            <div className="flex justify-between items-baseline mb-2"><label className="text-sm text-[#4A5D6E]">Взнос</label><div className="text-xl font-bold text-[#0F766E]">{down}% · {f(price * down / 100)} ₽</div></div>
+            <input type="range" min={0} max={90} step={5} value={down} onChange={(e) => setDown(Number(e.target.value))} className="w-full accent-[#0F766E]" />
           </div>
           <div className="rounded-[28px] bg-white border border-[#D5E0EA] p-5 md:p-6">
             <label className="text-sm text-[#4A5D6E]">Срок</label>
             <div className="flex flex-wrap gap-2 mt-3">
               {[5, 10, 15, 20, 25, 30].map((y) => (
-                <button key={y} onClick={() => setYears(y)} className={'px-4 py-2 rounded-full border text-sm font-medium transition ' + (years === y ? 'bg-[#0E4C77] border-[#0E4C77] text-white' : 'bg-white border-[#D5E0EA] text-[#4A5D6E] hover:border-[#0E4C77]')}>{y} лет</button>
+                <button key={y} onClick={() => setYears(y)} className={'px-4 py-2 rounded-full border text-sm font-medium transition ' + (years === y ? 'bg-[#0F766E] border-[#0F766E] text-white' : 'bg-white border-[#D5E0EA] text-[#4A5D6E] hover:border-[#0F766E]')}>{y} лет</button>
               ))}
             </div>
           </div>
@@ -747,7 +747,7 @@ function MortgageCalculator() {
             <label className="text-sm text-[#4A5D6E]">Программа</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
               {programs.map((pr) => (
-                <button key={pr.id} onClick={() => setProgram(pr.id)} className={'text-left rounded-2xl border-2 p-3 transition ' + (program === pr.id ? 'border-[#0E4C77] bg-[#F2F6FA]' : 'border-[#D5E0EA] bg-white hover:border-[#0E4C77]/50')}>
+                <button key={pr.id} onClick={() => setProgram(pr.id)} className={'text-left rounded-2xl border-2 p-3 transition ' + (program === pr.id ? 'border-[#0F766E] bg-[#F2F6FA]' : 'border-[#D5E0EA] bg-white hover:border-[#0F766E]/50')}>
                   <div className="font-medium text-sm">{pr.name} · {pr.rate}%</div>
                   <div className="text-xs text-[#4A5D6E] mt-1">{pr.desc}</div>
                 </button>
@@ -756,7 +756,7 @@ function MortgageCalculator() {
           </div>
         </div>
         <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-[28px] p-6 sticky top-20 text-white" style={{ background: 'linear-gradient(135deg,#0E4C77 0%,#B26A00 100%)' }}>
+          <div className="rounded-[28px] p-6 sticky top-20 text-white" style={{ background: 'linear-gradient(135deg,#0F766E 0%,#B26A00 100%)' }}>
             <div className="text-sm text-white/80">Платёж в месяц</div>
             <div className="text-4xl font-bold mt-1">{f(pay)} ₽</div>
             <div className="text-sm text-white/70 mt-1">«{cur.name}» · {cur.rate}%</div>
@@ -767,7 +767,7 @@ function MortgageCalculator() {
               <div className="flex justify-between"><span className="text-white/80">Всего</span><b>{f(pay * n)} ₽</b></div>
             </div>
           </div>
-          <a href={'https://coastal-estate.flexbe.ru/?price=' + price + '&program=' + program} target="_blank" rel="noopener" className="block w-full py-4 rounded-full bg-[#CBE5FA] text-[#082A44] font-bold text-center hover:shadow-lg transition">Оставить заявку на ипотеку</a>
+          <a href={'https://coastal-estate.flexbe.ru/?price=' + price + '&program=' + program} target="_blank" rel="noopener" className="block w-full py-4 rounded-full bg-[#CCFBF1] text-[#042F2E] font-bold text-center hover:shadow-lg transition">Оставить заявку на ипотеку</a>
           <div className="rounded-2xl bg-white border border-[#D5E0EA] p-4 text-xs text-[#4A5D6E]">💡 Расчёт ориентировочный. Поможем получить одобрение в 15+ банках.</div>
         </div>
       </div>
