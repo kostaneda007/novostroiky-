@@ -409,7 +409,7 @@ function ComplexesPage() {
   const [seaOnly, setSeaOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sel, setSel] = useState<string[]>([]);
-  const [applied, setApplied] = useState<{ sel: string[]; rooms: number[]; priceMin: string; priceMax: string; seaOnly: boolean } | null>(null);
+  const [applied, setApplied] = useState(false);
   const all = properties as Property[];
   const complexes = useMemo(() => {
     const m: Record<string, Property[]> = {};
@@ -431,22 +431,28 @@ function ComplexesPage() {
     return true;
   });
   const toggle = (n: string) => setSel((v) => (v.includes(n) ? v.filter((x) => x !== n) : [...v, n]));
-  const apply = () => { setApplied({ sel, rooms, priceMin, priceMax, seaOnly }); if (window.innerWidth < 768) setTimeout(() => document.getElementById('jk-results')?.scrollIntoView({ behavior: 'smooth' }), 50); };
+  const apply = () => { setApplied(true); if (window.innerWidth < 768) setTimeout(() => document.getElementById('jk-results')?.scrollIntoView({ behavior: 'smooth' }), 50); };
   const results = useMemo(() => {
-    if (!applied || applied.sel.length === 0) return [];
+    if (!applied || sel.length === 0) return [];
     return all.filter((p) => {
-      if (!applied.sel.includes(p.complex || '')) return false;
-      if (applied.rooms.length && !applied.rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;
-      const mn = parseFloat(applied.priceMin) || 0; const mx = parseFloat(applied.priceMax) || Infinity;
+      if (!sel.includes(p.complex || '')) return false;
+      if (rooms.length && !rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;
+      const mn = parseFloat(priceMin) || 0; const mx = parseFloat(priceMax) || Infinity;
       if (p.price > 0 && (p.price < mn * 1e6 || p.price > mx * 1e6)) return false;
-      if (applied.seaOnly && !(p.sea != null && p.sea <= 5000)) return false;
+      if (seaOnly && !(p.sea != null && p.sea <= 5000)) return false;
       return true;
     }).sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
-  }, [applied, all]);
+  }, [applied, sel, rooms, priceMin, priceMax, seaOnly, all]);
   const activeCount = rooms.length + (city ? 1 : 0) + (feed ? 1 : 0) + (seaOnly ? 1 : 0) + (priceMin ? 1 : 0) + (priceMax ? 1 : 0);
   return (
-    <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5 pb-24 md:pb-8">
+    <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5">
       <h1 className="text-2xl md:text-3xl font-serif font-medium mb-4">Жилые комплексы · {filteredComplexes.length}</h1>
+      <div className="sticky top-16 z-20 -mx-4 md:-mx-5 px-4 md:px-5 py-2 mb-4 bg-[#FDF9F3]/95 backdrop-blur border-b border-[#E0D7C8] flex items-center gap-2">
+        <button onClick={apply} className="flex-1 md:flex-none md:px-10 h-12 rounded-full bg-[#7A5900] text-white text-sm font-bold hover:shadow-lg transition">Применить {sel.length ? '(' + sel.length + ' ЖК)' : ''}</button>
+        <button onClick={() => { setSel([]); setApplied(false); setCity(''); setFeed(''); setRooms([]); setPriceMin(''); setPriceMax(''); setSeaOnly(false); }} className="h-12 px-5 rounded-full border border-[#E0D7C8] bg-white text-sm font-medium text-[#4C4639]">Сбросить</button>
+        {applied && sel.length > 0 && <span className="ml-auto text-sm text-[#4C4639]">Найдено: <b>{results.length}</b></span>}
+      </div>
+
       <div className="flex flex-col md:flex-row gap-4">
         <aside className="md:w-[380px] shrink-0 space-y-3">
           <button onClick={() => setFiltersOpen(!filtersOpen)} className="w-full flex items-center justify-between h-12 px-4 rounded-2xl bg-white border border-[#D5E0EA] text-sm font-medium">
@@ -482,7 +488,7 @@ function ComplexesPage() {
           </div>
         </aside>
         <section id="jk-results" className="flex-1 min-w-0">
-          {applied && applied.sel.length > 0 ? (
+          {applied && sel.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm text-[#4A5D6E]">Найдено: <b>{results.length}</b> квартир в {applied.sel.length} ЖК</div>
