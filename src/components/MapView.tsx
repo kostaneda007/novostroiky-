@@ -279,7 +279,7 @@ const selectedGroup = useMemo(() => groups.find((g) => g.address === selectedAdd
     <YMaps query={{ apikey: 'c3af7e4b-4ca3-4229-92c7-9ad4abd70c6a', lang: 'ru_RU' }}>
       <div className="flex flex-col md:flex-row h-full bg-[#FDF9F3] text-[#1E1B13]">
         <div className="relative h-[45dvh] shrink-0 md:h-full md:flex-1">
-          <YMap defaultState={{ bounds: [[54.25, 19.9], [55.35, 22.9]], behaviors: ['drag', 'dblClickZoom', 'multiTouch'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
+          <YMap defaultState={{ bounds: [[54.55, 19.95], [55.05, 20.85]], behaviors: ['drag', 'dblClickZoom', 'multiTouch'] }} options={{ suppressMapOpenBlock: true, restrictBounds: true }} style={{ width: '100%', height: '100%' }}>
             <ZoomControl />
             {groups.map((g) => (
               <Placemark key={g.address} geometry={[g.lat, g.lng]} properties={{ iconContent: g.items.length + ' · ' + priceSuffix(g.minPrice), hintContent: g.address, balloonContent: balloonHtml(g) }} options={{ preset: selectedAddress === g.address ? 'islands#redStretchyIcon' : 'islands#blueStretchyIcon', balloonMaxWidth: 320 }} onClick={() => setSelectedAddress(g.address)} />
@@ -379,7 +379,7 @@ function ComparePage() {
           <table className="w-full text-sm">
             <thead><tr><th className="text-left p-4 text-[#4C4639] font-medium w-36">Параметр</th>{items.map((p) => (
               <th key={p.id} className="p-4 align-top min-w-[220px]">
-                {p.images[0] && <img referrerPolicy="no-referrer" loading="lazy" src={p.images[0]} alt="" className="w-full h-32 object-cover rounded-xl mb-2" />}
+                {p.images[0] && <img referrerPolicy="no-referrer" loading="lazy" src={p.images[0]} alt="" className="w-full h-40 object-contain rounded-xl mb-2 bg-[#F4EEE3]" />}
                 <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="block font-bold text-[#7A5900] hover:underline">{p.price > 0 ? formatPrice(p.price) : 'Цена по запросу'}</a>
                 <button onClick={() => toggleStore(CMP_KEY, p.id)} className="text-xs text-[#4C4639] hover:text-red-600 mt-1">убрать ✕</button>
               </th>))}</tr></thead>
@@ -393,6 +393,10 @@ function ComparePage() {
 
 function ComplexesPage() {
   const [sel, setSel] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [city, setCity] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [seaOnly, setSeaOnly] = useState(false);
   const complexes = useMemo(() => {
     const m: Record<string, Property[]> = {};
     (properties as Property[]).forEach((p) => { if (p.complex) (m[p.complex] = m[p.complex] || []).push(p); });
@@ -402,27 +406,44 @@ function ComplexesPage() {
       return { name, items, minPrice: pos.length ? Math.min(...pos) : 0, city: items[0].city, sea: sea.length ? Math.min(...sea) : null };
     }).sort((a, b) => b.items.length - a.items.length);
   }, []);
-  const cur = complexes.find((c) => c.name === sel) || null;
+  const cities = useMemo(() => Array.from(new Set(complexes.map((c) => c.city).filter(Boolean))).sort(), [complexes]);
+  const filtered = complexes.filter((c) => {
+    if (query && !(c.name + ' ' + c.city).toLowerCase().includes(query.toLowerCase())) return false;
+    if (city && c.city !== city) return false;
+    if (maxPrice && c.minPrice > parseFloat(maxPrice) * 1e6) return false;
+    if (seaOnly && !(c.sea != null && c.sea <= 5000)) return false;
+    return true;
+  });
+  const cur = filtered.find((c) => c.name === sel) || null;
   return (
     <main className="max-w-[1400px] mx-auto px-4 md:px-5 py-5">
-      <h1 className="text-2xl font-serif font-medium mb-4">Жилые комплексы · {complexes.length}</h1>
-      <div className="flex gap-4 h-[calc(100vh-170px)] min-h-[420px]">
-        <aside className="w-[38%] md:w-[340px] shrink-0 overflow-y-auto pr-1 space-y-2">
-          {complexes.map((c) => (
-            <button key={c.name} onClick={() => setSel(c.name)} className={'w-full text-left rounded-[20px] border p-4 transition ' + (sel === c.name ? 'bg-[#FFDEA6] border-[#7A5900]' : 'bg-white border-[#E0D7C8] hover:shadow-md')}>
-              <div className="font-bold text-[#7A5900]">«{c.name}»</div>
-              <div className="text-sm mt-0.5">{c.city}</div>
-              <div className="text-xs text-[#4C4639] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
-            </button>
-          ))}
+      <h1 className="text-2xl font-serif font-medium mb-4">Жилые комплексы · {filtered.length}</h1>
+      <div className="flex flex-col md:flex-row gap-4 md:h-[calc(100vh-170px)]">
+        <aside className="md:w-[360px] shrink-0 flex flex-col gap-2 md:overflow-y-auto md:pr-1">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск ЖК..." className="w-full h-11 px-4 rounded-xl bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={city} onChange={(e) => setCity(e.target.value)} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+            <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} type="number" placeholder="Цена до, млн" className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm" />
+          </div>
+          <button onClick={() => setSeaOnly(!seaOnly)} className={'h-11 px-4 rounded-xl border text-sm font-medium transition ' + (seaOnly ? 'bg-[#E0F2FE] border-[#0369A1] text-[#0369A1]' : 'bg-white border-[#E0D7C8] text-[#4C4639]')}>🌊 Только у моря</button>
+          <div className="space-y-2 mt-1">
+            {filtered.map((c) => (
+              <button key={c.name} onClick={() => setSel(c.name === sel ? null : c.name)} className={'w-full text-left rounded-[20px] border p-4 transition ' + (sel === c.name ? 'bg-[#FFDEA6] border-[#7A5900]' : 'bg-white border-[#E0D7C8] hover:shadow-md')}>
+                <div className="font-bold text-[#7A5900]">«{c.name}»</div>
+                <div className="text-sm mt-0.5">{c.city}</div>
+                <div className="text-xs text-[#4C4639] mt-1">{c.items.length} кв. · {priceSuffix(c.minPrice)}{c.sea != null && c.sea <= 5000 ? ' · 🌊 ' + seaLabel(c.sea) : ''}</div>
+              </button>
+            ))}
+            {filtered.length === 0 && <div className="text-center text-sm text-[#4C4639] py-8">Ничего не найдено</div>}
+          </div>
         </aside>
-        <section className="flex-1 overflow-y-auto">
+        <section className="flex-1 md:overflow-y-auto">
           {cur ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {cur.items.map((p) => <PropertyCard key={p.id} p={p} />)}
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center rounded-[28px] bg-white border border-[#E0D7C8] text-[#4C4639]">← Выберите жилой комплекс слева</div>
+            <div className="h-full min-h-[300px] flex items-center justify-center rounded-[28px] bg-white border border-[#E0D7C8] text-[#4C4639]">← Выберите жилой комплекс слева</div>
           )}
         </section>
       </div>
