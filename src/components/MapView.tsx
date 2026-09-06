@@ -210,7 +210,7 @@ function AddressList({ groups, total, query, setQuery, onSelect, filters, setFil
         <div className="px-4 pb-3 space-y-2">
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по адресу или ЖК..." className="w-full py-3 px-5 rounded-full bg-white border border-[#E0D7C8] text-sm focus:outline-none focus:border-[#7A5900]" />
           <div className="grid grid-cols-2 gap-2">
-            <select value={filters.city || ''} onChange={(e) => setFilters({ ...filters, city: e.target.value || null })} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.city || ''} onChange={(e) => { const c = e.target.value || null; setFilters({ ...filters, city: c, complex: null }); }} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все города</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select>
             <select value={filters.complex || ''} onChange={(e) => setFilters({ ...filters, complex: e.target.value || null })} className="h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все ЖК</option>{complexes.map((c) => <option key={c} value={c}>{c}</option>)}</select>
           </div>
           <select value={filters.feed || ''} onChange={(e) => setFilters({ ...filters, feed: e.target.value || null })} className="w-full h-11 px-3 rounded-xl bg-white border border-[#E0D7C8] text-sm"><option value="">Все застройщики</option>{feeds.map((f) => <option key={f} value={f}>{f}</option>)}</select>
@@ -243,8 +243,8 @@ function MapScreen() {
   const [filtersOpen, setFiltersOpen] = useState(true);
 
   const cities = useMemo(() => { const c: Record<string, number> = {}; (properties as Property[]).forEach((p) => { if (p.city && p.city !== 'Другое') c[p.city] = (c[p.city] || 0) + 1; }); return Object.keys(c).sort((a, b) => c[b] - c[a]); }, []);
-  const complexes = useMemo(() => { const c: Record<string, number> = {}; (properties as Property[]).forEach((p) => { if (p.complex) c[p.complex] = (c[p.complex] || 0) + 1; }); return Object.keys(c).sort((a, b) => c[b] - c[a]); }, []);
-  const feeds = useMemo(() => Array.from(new Set((properties as Property[]).map((p) => p.feedName))), []);
+  
+  
 
   const filteredProps = useMemo(() => (properties as Property[]).filter((p) => {
     if (filters.rooms.length && !filters.rooms.some((r) => (r === 4 ? p.rooms >= 4 : p.rooms === r))) return false;

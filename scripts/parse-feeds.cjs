@@ -308,7 +308,9 @@ async function main() {
     p.lng = Number((base.lng + radius * Math.cos(angle)).toFixed(6));
   });
 
-  all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
+  const complexCity = {};
+all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; });
+all.forEach((p) => { p.complex = extractComplex(p.description + ' ' + p.title); });
 
   all.forEach((p) => { p.city = detectCity(p.address, p.lat, p.lng); });
 
@@ -316,6 +318,7 @@ async function main() {
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
+fs.writeFileSync(path.join(__dirname, '../src/data/complex-cities.json'), JSON.stringify(complexCity, null, 2));
   console.log('Сохранено: ' + all.length + ' объектов');
 }
 
