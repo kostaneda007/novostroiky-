@@ -2,15 +2,37 @@ const fs = require('fs');
 const path = require('path');
 const { parseString } = require('xml2js');
 
+
+// Читаем предыдущие данные для fallback при ошибке сети
+const PREV_PROPS = (() => {
+  try {
+    if (fs.existsSync(OUT_FILE)) return JSON.parse(fs.readFileSync(OUT_FILE, 'utf8'));
+  } catch (e) {}
+  return [];
+})();
+
 const feedsConfig = require('../src/config/feeds.json');
 
 function unwrap(v) {
-  if (v && typeof v === 'object') {
-    if (v.value != null) return v.value;
-    if (v.Value != null) return v.Value;
-    if (v._ != null) return v._;
-    if (v['#text'] != null) return v['#text'];
+  if (v == null) return '';
+  if (typeof v !== 'object') return v;
+  // Прямое значение
+  if (v.value != null) return v.value;
+  if (v.Value != null) return v.Value;
+  if (v._ != null) return v._;
+  if (v['#text'] != null) return v['#text'];
+  if (v['final-price'] != null) return v['final-price'];
+  if (v['finalPrice'] != null) return v['finalPrice'];
+  if (v['discount-price'] != null) return v['discount-price'];
+  // Рекурсивно: иногда xml2js делает {price: {value: X}} и нужно достать X
+  for (const k of Object.keys(v)) {
+    if (typeof v[k] === 'object' && v[k] !== null) {
+      const inner = unwrap(v[k]);
+      if (inner !== '') return inner;
+    }
   }
+  return '';
+}
   return v == null ? '' : v;
 }
 const MANUAL = require('./address-coords.json');
@@ -215,14 +237,14 @@ function mapOffer(offer, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(unwrap(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0))), 10) || 0,
+    price: parseInt(digits(unwrap(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'finalPrice', 'discount-price', 'discount', 'amount', 'Amount'], 0))), 10) || 0,
     title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
     description: rich(deep(offer, ['description', 'Description'], 0)),
     address: fullAddr,
     lat: coordLat,
     lng: coordLng,
     rooms: parseRooms(deep(offer, ['rooms', 'Rooms', 'roomsCount'], 0)),
-    area: parseArea(unwrap(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square', 'TotalArea'], 0))),
+    area: parseArea(unwrap(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square', 'TotalArea', 'space', 'Space', 'living-space'], 0))),
     floor: String(deep(offer, ['floor', 'Floor'], 0)),
     totalFloors: String(deep(offer, ['floors-total', 'floorsTotal', 'total-floors', 'TotalFloors'], 0)),
     seller: clean(deep(offer, ['company', 'Company', 'seller', 'Seller', 'developer', 'Developer'], 0)) || feed.name,
@@ -327,6 +349,11 @@ all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; }
   all.forEach((p) => { if (p.lat && p.lng) p.sea = seaDistance(p.lat, p.lng); });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+  if (all.length === 0 && PREV_PROPS.length > 0) {
+    console.error('❌ Все фиды упали — сохраняем предыдущие данные (' + PREV_PROPS.length + ' объектов)');
+    fs.writeFileSync(OUT_FILE, JSON.stringify(PREV_PROPS, null, 2));
+    return;
+  }
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
 fs.writeFileSync(path.join(__dirname, '../src/data/complex-cities.json'), JSON.stringify(complexCity, null, 2));
   console.log('Сохранено: ' + all.length + ' объектов');
