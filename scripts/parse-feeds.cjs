@@ -2,28 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { parseString } = require('xml2js');
 
-
 const feedsConfig = require('../src/config/feeds.json');
-
-  for (const k of Object.keys(v)) {
-    if (typeof v[k] === 'object' && v[k] !== null) {
-      const inner = unwrap(v[k]);
-      if (inner !== '') return inner;
-    }
-  }
-  return '';
-}
-  return v == null ? '' : v;
-}
 const MANUAL = require('./address-coords.json');
-
-const PREV_PROPS = (() => {
-  try {
-    if (fs.existsSync(OUT_FILE)) return JSON.parse(fs.readFileSync(OUT_FILE, 'utf8'));
-  } catch (e) {}
-  return [];
-})();
-
 const CACHE_FILE = path.join(__dirname, 'geocode-cache.json');
 const OUT_FILE = path.join(__dirname, '../src/data/properties.json');
 
@@ -207,21 +187,10 @@ function detectCity(address, lat, lng) {
 
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
-
 function unwrap(v) {
-  if (v == null) return '';
-  if (typeof v === 'object') {
-    if (v.value !== undefined) return v.value;
-    if (v.Value !== undefined) return v.Value;
-    if (v._ !== undefined) return v._;
-    if (v['final-price'] !== undefined) return v['final-price'];
-    if (v['discount-price'] !== undefined) return v['discount-price'];
-    if (Array.isArray(v) && v.length > 0) return unwrap(v[0]);
-    return '';
-  }
-  return v;
+  if (v && typeof v === "object") return v.value != null ? v.value : (v.Value != null ? v.Value : (v._ != null ? v._ : ""));
+  return v == null ? "" : v;
 }
-
 function mapOffer(offer, feed, i) {
   const addr = offer && offer.Address ? offer.Address : offer;
   const locality = deep(addr, ['locality', 'Locality', 'city', 'City'], 0) || deep(offer, ['locality', 'Locality'], 0);
@@ -240,14 +209,14 @@ function mapOffer(offer, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(unwrap(deep(offer, ['discount', 'price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'finalPrice', 'discount-price', 'amount', 'Amount'], 0)))), 10) || 0,
+    price: parseInt(digits(unwrap(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0))), 10) || 0,
     title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
     description: rich(deep(offer, ['description', 'Description'], 0)),
     address: fullAddr,
     lat: coordLat,
     lng: coordLng,
     rooms: parseRooms(deep(offer, ['rooms', 'Rooms', 'roomsCount'], 0)),
-    area: parseArea(unwrap(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square', 'TotalArea', 'space', 'Space', 'living-space'], 0))),
+    area: parseArea(unwrap(deep(offer, ['area', 'Area', 'total-area', 'totalArea', 'square', 'TotalArea'], 0))),
     floor: String(deep(offer, ['floor', 'Floor'], 0)),
     totalFloors: String(deep(offer, ['floors-total', 'floorsTotal', 'total-floors', 'TotalFloors'], 0)),
     seller: clean(deep(offer, ['company', 'Company', 'seller', 'Seller', 'developer', 'Developer'], 0)) || feed.name,
@@ -263,7 +232,7 @@ function mapAvito(ad, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(unwrap(deep(ad, ['Price', 'price', 'Cost'], 0))))), 10) || 0,
+    price: parseInt(digits(deep(ad, ['Price', 'price', 'Cost'], 0)), 10) || 0,
     title: clean(deep(ad, ['Title', 'Name', 'name'], 0)) || 'Объект недвижимости',
     description: rich(deep(ad, ['Description', 'description'], 0)),
     address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
@@ -301,23 +270,9 @@ const findOffers = (node) => {
   return [];
 };
 
-
-async function fetchWithRetry(url, opts, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const r = await fetch(url, opts);
-      if (r.ok) return r;
-      console.log('   ⚠️ HTTP ' + r.status + ', попытка ' + (i+1) + '/' + retries);
-    } catch (e) {
-      console.log('   ⚠️ ' + e.message + ', попытка ' + (i+1) + '/' + retries);
-    }
-    if (i < retries - 1) await new Promise(r => setTimeout(r, 2000 * (i + 1)));
-  }
-  throw new Error('fetch failed after ' + retries + ' attempts');
-}
 async function parseFeed(feed) {
   console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
-  const response = await fetchWithRetry(feed.url, { headers: HEADERS, redirect: 'follow' });
+  const response = await fetch(feed.url, { headers: HEADERS, redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status);
   const xml = await response.text();
   const result = await new Promise((resolve, reject) =>
@@ -366,26 +321,7 @@ all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; }
   all.forEach((p) => { if (p.lat && p.lng) p.sea = seaDistance(p.lat, p.lng); });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
-  
-  // Fallback: если фид упал, берём его старые объекты из кэша
-  if (PREV_PROPS && PREV_PROPS.length > 0) {
-    const newFeeds = new Set(all.map(p => p.feedId));
-    const oldFeeds = new Set(PREV_PROPS.map(p => p.feedId));
-    const lostFeeds = Array.from(oldFeeds).filter(f => !newFeeds.has(f));
-    if (lostFeeds.length > 0) {
-      const restored = PREV_PROPS.filter(p => lostFeeds.includes(p.feedId));
-      console.log('   ♻️ Восстановлено ' + restored.length + ' объектов из кэша (упали фиды: ' + lostFeeds.join(', ') + ')');
-      all = all.concat(restored);
-    }
-  }
-
-  const result = { lastUpdated: new Date().toISOString(), total: all.length, feeds: {}, properties: all };
-  for (const p of all) {
-    if (!result.feeds[p.feedId]) result.feeds[p.feedId] = { name: p.feedName, count: 0, withPrice: 0 };
-    result.feeds[p.feedId].count++;
-    if (p.price > 0) result.feeds[p.feedId].withPrice++;
-  }
-  fs.writeFileSync(OUT_FILE, JSON.stringify(result, null, 2));
+  fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
 fs.writeFileSync(path.join(__dirname, '../src/data/complex-cities.json'), JSON.stringify(complexCity, null, 2));
   console.log('Сохранено: ' + all.length + ' объектов');
 }
