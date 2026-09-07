@@ -54,35 +54,57 @@ function timeAgo(iso: string | null): string {
   return d + ' дн. назад';
 }
 function Header({ hash }: { hash: string }) {
-  const favs = useStore(FAV_KEY);
-  const cmp = useStore(CMP_KEY);
+  const favs = useFavs();
+  const cmp = useCmp();
   const [open, setOpen] = useState(false);
   const nav = [
-    { h: '#/', l: 'Карта' }, { h: '#/complexes', l: 'ЖК' }, { h: '#/analytics', l: 'Аналитика' },
-    { h: '#/budget', l: 'Бюджет' }, { h: '#/calc', l: 'Калькулятор' }, { h: '#/compare', l: 'Сравнить' }, { h: '#/about', l: 'О нас' },
+    { h: '#/', l: 'Карта' },
+    { h: '#/complexes', l: 'ЖК' },
+    { h: '#/analytics', l: 'Аналитика' },
+    { h: '#/budget', l: 'Бюджет' },
+    { h: '#/calc', l: 'Калькулятор' },
+    { h: '#/compare', l: 'Сравнить' },
+    { h: '#/about', l: 'О нас' },
   ];
   const act = (h: string) => (h === '#/' ? (hash === '#/' || hash === '' || hash.indexOf('#/property') === 0) : hash.indexOf(h) === 0);
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-[#E6E8EB]">
-      <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between gap-3">
-        <a href="#/" className="font-serif text-lg font-medium whitespace-nowrap">Новостройки <span className="text-[#2563EB] font-bold">39</span></a>
-        <nav className="hidden md:flex items-center gap-1">
-          {nav.map((n) => <a key={n.h} href={n.h} className={'px-3 py-2 rounded-full text-sm font-medium transition ' + (act(n.h) ? 'bg-[#DBEAFE] text-[#1E3A8A]' : 'text-[#6B7280] hover:bg-[#FFFFFF]')}>{n.l}{n.h === '#/favorites' ? '' : n.h === '#/compare' && cmp.length > 0 ? ' · ' + cmp.length : ''}</a>)}
-          <a href="#/favorites" className={'ml-1 px-3 py-2 rounded-full text-sm font-medium flex items-center gap-1 ' + (hash.indexOf('#/favorites') === 0 ? 'bg-[#DBEAFE] text-[#1E3A8A]' : 'text-[#2563EB] hover:bg-[#FFFFFF]')}><HeartIcon filled={favs.length > 0} /> {favs.length}</a>
-        </nav>
-        <button className="md:hidden w-12 h-12 -mr-2 rounded-full flex items-center justify-center hover:bg-[#FFFFFF]" onClick={() => setOpen(!open)} aria-label="Меню">
-          <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
-        </button>
-      </div>
-      {open && (
-        <nav className="md:hidden border-t border-[#E6E8EB] bg-white px-5 py-2 flex flex-col">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-16 flex items-center gap-3">
+        <a href="#/" className="flex items-center gap-2.5 shrink-0">
+          <span className="w-9 h-9 rounded-xl bg-[#2563EB] text-white font-bold text-base flex items-center justify-center shadow-sm">39</span>
+          <span className="leading-tight">
+            <span className="block text-[17px] font-bold text-[#111827]">Новостройки 39</span>
+            <span className="block text-[11px] text-[#6B7280]">Калининградская область</span>
+          </span>
+        </a>
+        <nav className="hidden lg:flex items-center gap-1 ml-3">
           {nav.map((n) => (
-            <a key={n.h} href={n.h} onClick={() => setOpen(false)} className="py-4 text-lg font-medium text-[#111827] border-b border-[#FFFFFF] last:border-0 flex items-center justify-between">
+            <a key={n.h} href={n.h} className={'px-3.5 py-2 rounded-lg text-[14px] font-medium transition ' + (act(n.h) ? 'bg-[#DBEAFE] text-[#1E3A8A]' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]')}>
               {n.l}
-              {n.h === '#/compare' && cmp.length > 0 && <span className="text-base text-[#0369A1]">· {cmp.length}</span>}
+              {n.h === '#/compare' && cmp.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-[#2563EB] text-white text-[11px] font-bold">{cmp.length}</span>}
             </a>
           ))}
-          <a href="#/favorites" onClick={() => setOpen(false)} className="py-4 text-lg font-medium text-[#2563EB] flex items-center justify-between">Избранное<span className="text-base">· {favs.length}</span></a>
+        </nav>
+        <div className="flex items-center gap-2 ml-auto">
+          <a href="#/favorites" aria-label="Избранное" className={'relative w-10 h-10 rounded-xl flex items-center justify-center transition ' + (hash.indexOf('#/favorites') === 0 ? 'bg-[#DBEAFE] text-[#1E3A8A]' : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]')}>
+            <HeartIcon filled={favs.length > 0} />
+            {favs.length > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#2563EB] text-white text-[11px] font-bold flex items-center justify-center">{favs.length}</span>}
+          </a>
+          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="hidden md:flex h-10 px-4 rounded-xl bg-[#2563EB] text-white text-[14px] font-semibold items-center justify-center hover:bg-[#1D4ED8] transition shadow-sm">{PHONE}</a>
+          <button className="lg:hidden w-10 h-10 rounded-xl flex items-center justify-center text-[#111827] hover:bg-[#F3F4F6]" onClick={() => setOpen(!open)} aria-label="Меню">
+            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          </button>
+        </div>
+      </div>
+      {open && (
+        <nav className="lg:hidden border-t border-[#E6E8EB] bg-white px-4 py-2">
+          {nav.map((n) => (
+            <a key={n.h} href={n.h} onClick={() => setOpen(false)} className={'flex items-center justify-between py-3 px-2 rounded-lg text-[15px] font-medium ' + (act(n.h) ? 'text-[#1E3A8A] bg-[#DBEAFE]' : 'text-[#111827]')}>
+              {n.l}
+              {n.h === '#/compare' && cmp.length > 0 && <span className="px-1.5 py-0.5 rounded-md bg-[#2563EB] text-white text-[11px] font-bold">{cmp.length}</span>}
+            </a>
+          ))}
+          <a href={'tel:' + PHONE.replace(/[^+0-9]/g, '')} className="block my-2 h-11 rounded-xl bg-[#2563EB] text-white text-[15px] font-semibold flex items-center justify-center">{PHONE}</a>
         </nav>
       )}
     </header>
