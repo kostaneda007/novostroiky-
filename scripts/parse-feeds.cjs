@@ -191,6 +191,25 @@ function unwrap(v) {
   if (v && typeof v === "object") return v.value != null ? v.value : (v.Value != null ? v.Value : (v._ != null ? v._ : ""));
   return v == null ? "" : v;
 }
+
+function getVal(obj, keys) {
+  if (!obj || typeof obj !== 'object') return 0;
+  for (const k of keys) {
+    if (obj[k] !== undefined) {
+      let v = obj[k];
+      if (v && typeof v === 'object') {
+        if (v.value !== undefined) v = v.value;
+        else if (v['final-price'] !== undefined) v = v['final-price'];
+        else if (v._ !== undefined) v = v._;
+      }
+      const str = String(v).replace(/[^\d.]/g, '');
+      const num = parseFloat(str);
+      if (!isNaN(num) && num > 0) return num;
+    }
+  }
+  return 0;
+}
+
 function mapOffer(offer, feed, i) {
   const addr = offer && offer.Address ? offer.Address : offer;
   const locality = deep(addr, ['locality', 'Locality', 'city', 'City'], 0) || deep(offer, ['locality', 'Locality'], 0);
@@ -209,7 +228,7 @@ function mapOffer(offer, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(unwrap(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost'], 0))), 10) || 0,
+    price: getVal(offer, ['discount', 'price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'amount']) || 0,
     title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
     description: rich(deep(offer, ['description', 'Description'], 0)),
     address: fullAddr,
@@ -232,7 +251,7 @@ function mapAvito(ad, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(deep(ad, ['Price', 'price', 'Cost'], 0)), 10) || 0,
+    price: getVal(ad, ['discount', 'price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'amount']) || 0,
     title: clean(deep(ad, ['Title', 'Name', 'name'], 0)) || 'Объект недвижимости',
     description: rich(deep(ad, ['Description', 'description'], 0)),
     address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
