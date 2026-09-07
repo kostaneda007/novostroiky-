@@ -5,18 +5,7 @@ const { parseString } = require('xml2js');
 
 const feedsConfig = require('../src/config/feeds.json');
 
-function unwrap(v) {
-  if (v == null) return '';
-  if (typeof v !== 'object') return v;
-  // Прямое значение
-  if (v.value != null) return v.value;
-  if (v.Value != null) return v.Value;
-  if (v._ != null) return v._;
-  if (v['#text'] != null) return v['#text'];
-  if (v['final-price'] != null) return v['final-price'];
-  if (v['finalPrice'] != null) return v['finalPrice'];
-  if (v['discount-price'] != null) return v['discount-price'];
-  // Рекурсивно: иногда xml2js делает {price: {value: X}} и нужно достать X
+} и нужно достать X
   for (const k of Object.keys(v)) {
     if (typeof v[k] === 'object' && v[k] !== null) {
       const inner = unwrap(v[k]);
@@ -218,6 +207,23 @@ function detectCity(address, lat, lng) {
 }
 
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
+
+function unwrap(v) {
+  if (v == null) return '';
+  if (typeof v === 'object') {
+    if (v.value != null) return v.value;
+    if (v.Value != null) return v.Value;
+    if (v._ != null) return v._;
+    if (v['#text'] != null) return v['#text'];
+    // Рекурсивно ищем value в первом свойстве
+    const keys = Object.keys(v);
+    if (keys.length === 1 && typeof v[keys[0]] === 'object') {
+      return unwrap(v[keys[0]]);
+    }
+    return '';
+  }
+  return String(v);
+}
 
 function mapOffer(offer, feed, i) {
   const addr = offer && offer.Address ? offer.Address : offer;
