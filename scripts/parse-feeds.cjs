@@ -3,6 +3,16 @@ const path = require('path');
 const { parseString } = require('xml2js');
 
 const feedsConfig = require('../src/config/feeds.json');
+
+function unwrap(v) {
+  if (v && typeof v === 'object') {
+    if (v.value != null) return v.value;
+    if (v.Value != null) return v.Value;
+    if (v._ != null) return v._;
+    if (v['#text'] != null) return v['#text'];
+  }
+  return v == null ? '' : v;
+}
 const MANUAL = require('./address-coords.json');
 const CACHE_FILE = path.join(__dirname, 'geocode-cache.json');
 const OUT_FILE = path.join(__dirname, '../src/data/properties.json');
@@ -187,10 +197,6 @@ function detectCity(address, lat, lng) {
 
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
-function unwrap(v) {
-  if (v && typeof v === "object") return v.value != null ? v.value : (v.Value != null ? v.Value : (v._ != null ? v._ : ""));
-  return v == null ? "" : v;
-}
 function mapOffer(offer, feed, i) {
   const addr = offer && offer.Address ? offer.Address : offer;
   const locality = deep(addr, ['locality', 'Locality', 'city', 'City'], 0) || deep(offer, ['locality', 'Locality'], 0);
