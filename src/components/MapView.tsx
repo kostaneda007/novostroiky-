@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { YMaps, Map as YMap, Placemark, ZoomControl } from '@pbe/react-yandex-maps';
-import properties from '../data/properties.json';
+import propertiesData from '../data/properties.json';
+const properties = (propertiesData as any).properties || propertiesData;
+const lastUpdated = (propertiesData as any).lastUpdated || null;
+const feedStats = (propertiesData as any).feeds || {};
 
 type Property = { id: string; price: number; title: string; description: string; address: string; city: string; complex: string; lat: number; lng: number; rooms: number; area: number; floor: string; totalFloors: string; feedName: string; images: string[]; phone: string; url: string; seller: string; sea?: number };
 type Group = { address: string; items: Property[]; lat: number; lng: number; minPrice: number; feedName: string; complex: string };
@@ -38,6 +41,18 @@ function XIcon() { return <svg viewBox="0 0 24 24" className="w-6 h-6" fill="non
 function ChatIcon() { return <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>; }
 function HeartIcon({ filled }: { filled: boolean }) { return <svg viewBox="0 0 24 24" className="w-5 h-5" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21.2l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>; }
 
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return 'только что';
+  if (min < 60) return min + ' мин. назад';
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + ' ч. назад';
+  const d = Math.floor(hr / 24);
+  return d + ' дн. назад';
+}
 function Header({ hash }: { hash: string }) {
   const favs = useStore(FAV_KEY);
   const cmp = useStore(CMP_KEY);

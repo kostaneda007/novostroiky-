@@ -298,9 +298,23 @@ const findOffers = (node) => {
   return [];
 };
 
+
+async function fetchWithRetry(url, opts, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(url, opts);
+      if (r.ok) return r;
+      console.log('   ⚠️ HTTP ' + r.status + ', попытка ' + (i+1) + '/' + retries);
+    } catch (e) {
+      console.log('   ⚠️ ' + e.message + ', попытка ' + (i+1) + '/' + retries);
+    }
+    if (i < retries - 1) await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+  }
+  throw new Error('fetch failed after ' + retries + ' attempts');
+}
 async function parseFeed(feed) {
   console.log('Парсинг: ' + feed.name + ' (' + feed.format + ')');
-  const response = await fetch(feed.url, { headers: HEADERS, redirect: 'follow' });
+  const response = await fetchWithRetry(feed.url, { headers: HEADERS, redirect: 'follow' });
   if (!response.ok) throw new Error('HTTP ' + response.status);
   const xml = await response.text();
   const result = await new Promise((resolve, reject) =>
@@ -362,7 +376,13 @@ all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; }
     }
   }
 
-  fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
+  const result = { lastUpdated: new Date().toISOString(), total: all.length, feeds: {}, properties: all };
+  for (const p of all) {
+    if (!result.feeds[p.feedId]) result.feeds[p.feedId] = { name: p.feedName, count: 0, withPrice: 0 };
+    result.feeds[p.feedId].count++;
+    if (p.price > 0) result.feeds[p.feedId].withPrice++;
+  }
+  fs.writeFileSync(OUT_FILE, JSON.stringify(result, null, 2));
 fs.writeFileSync(path.join(__dirname, '../src/data/complex-cities.json'), JSON.stringify(complexCity, null, 2));
   console.log('Сохранено: ' + all.length + ' объектов');
 }

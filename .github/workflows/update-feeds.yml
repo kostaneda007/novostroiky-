@@ -2,8 +2,13 @@ name: Update feeds
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+    - cron: '0 */4 * * *'  # каждые 4 часа
+  workflow_dispatch:        # кнопка "Run workflow" в GitHub UI
+    inputs:
+      force:
+        description: 'Force update (ignore cache)'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -11,20 +16,43 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund --legacy-peer-deps
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+      
       - name: Parse feeds
         run: node scripts/parse-feeds.cjs
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+      
+      - name: Generate complex-cities
+        run: |
+          node -e "
+          const fs = require('fs');
+          const d = JSON.parse(fs.readFileSync('src/data/properties.json', 'utf8'));
+          const props = d.properties || d;
+          const cc = {};
+          props.forEach(p => { if (p.complex && p.city) cc[p.complex] = p.city; });
+          fs.writeFileSync('src/data/complex-cities.json', JSON.stringify(cc, null, 2));
+          "
+      
       - name: Prerender static pages
         run: node scripts/prerender.cjs
+      
       - name: Commit and push
         run: |
           git config user.name "feeds-bot"
           git config user.email "feeds-bot@users.noreply.github.com"
-          git add src/data/properties.json public/property public/address public/data public/sitemap.xml public/llms.txt
-          git diff --staged --quiet || git commit -m "chore: автообновление фидов + пререндер страниц"
+          git add src/data/properties.json src/data/complex-cities.json scripts/geocode-cache.json public/property public/address public/data public/sitemap.xml
+          git diff --staged --quiet || git commit -m "chore: автообновление фидов $(date +'%Y-%m-%d %H:%M')"
           git push
