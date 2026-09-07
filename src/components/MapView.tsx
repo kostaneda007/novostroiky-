@@ -819,6 +819,14 @@ function MortgageCalculator() {
 }
 export default function MapView() {
   const hash = useHash();
+  useEffect(() => {
+    const valid = new Set((properties as Property[]).map((p) => p.id));
+    [FAV_KEY, CMP_KEY].forEach((k) => {
+      const cur = getStore(k);
+      const clean = cur.filter((id) => valid.has(id));
+      if (clean.length !== cur.length) setStore(k, clean);
+    });
+  }, []);
   const propertyId = hash.indexOf('#/property/') === 0 ? decodeURIComponent(hash.slice(11)) : null;
   const propertyPage = useMemo(() => (propertyId ? ((properties as Property[]).find((p) => p.id === propertyId) || null) : null), [propertyId]);
   let content: React.ReactNode; let isMap = false;

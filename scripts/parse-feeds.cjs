@@ -111,6 +111,7 @@ function extractComplex(text) {
   return '';
 }
 
+function hashStr(s) { let h = 5381; s = String(s); for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
 function mapAvito(ad, feed, i) {
   const addr = deep(ad, ['Address', 'address'], {});
   const street = deep(addr, ['Street', 'street'], '') || deep(ad, ['street', 'Street'], '');
@@ -118,7 +119,7 @@ function mapAvito(ad, feed, i) {
   const fullAddr = (locality ? locality + ', ' : '') + (street || feed.defaultAddress || feed.region);
   const price = parseInt(digits(deep(ad, ['Price', 'price', 'Cost', 'cost'], 0)), 10) || 0;
   return {
-    id: feed.id + '-' + i + '-' + (deep(ad, ['Id', 'id', 'UniqueID'], '') || i),
+    id: feed.id + '-' + hashStr(deep(ad, ['Url', 'url', 'UniqueID', 'Id'], '') || (fullAddr + '|' + price)),
     feedId: feed.id, feedName: feed.name, region: feed.region,
     price, area: parseArea(deep(ad, ['Area', 'area', 'TotalArea'], 0)),
     rooms: parseRooms(deep(ad, ['Rooms', 'rooms', 'RoomsCount'], 0)),
@@ -140,7 +141,7 @@ function mapOffer(offer, feed, i) {
   const complex = deep(offer, ['building-name', 'complex', 'Complex'], '');
   const fullAddr = (locality ? locality + ', ' : '') + (street || complex || feed.region);
   return {
-    id: feed.id + '-' + i + '-' + (deep(offer, ['internal-id', 'id', 'Id'], '') || i),
+    id: feed.id + '-' + hashStr(deep(offer, ['url', 'Url', 'internal-id', 'id'], '') || (fullAddr + '|' + getNum(offer, ['discount', 'price', 'Price']) + '|' + getNum(offer, ['area', 'Area']))),
     feedId: feed.id, feedName: feed.name, region: feed.region,
     price: getNum(offer, ['discount', 'price', 'Price', 'total-price', 'cost', 'final-price', 'amount']),
     area: getNum(offer, ['area', 'Area', 'total-area', 'totalArea', 'living-space', 'kitchen-space']),
