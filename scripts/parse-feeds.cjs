@@ -3,14 +3,6 @@ const path = require('path');
 const { parseString } = require('xml2js');
 
 
-// Читаем предыдущие данные для fallback при ошибке сети
-const PREV_PROPS = (() => {
-  try {
-    if (fs.existsSync(OUT_FILE)) return JSON.parse(fs.readFileSync(OUT_FILE, 'utf8'));
-  } catch (e) {}
-  return [];
-})();
-
 const feedsConfig = require('../src/config/feeds.json');
 
 function unwrap(v) {
@@ -36,6 +28,14 @@ function unwrap(v) {
   return v == null ? '' : v;
 }
 const MANUAL = require('./address-coords.json');
+
+const PREV_PROPS = (() => {
+  try {
+    if (fs.existsSync(OUT_FILE)) return JSON.parse(fs.readFileSync(OUT_FILE, 'utf8'));
+  } catch (e) {}
+  return [];
+})();
+
 const CACHE_FILE = path.join(__dirname, 'geocode-cache.json');
 const OUT_FILE = path.join(__dirname, '../src/data/properties.json');
 
@@ -349,11 +349,19 @@ all.forEach((p) => { if (p.complex && p.city) complexCity[p.complex] = p.city; }
   all.forEach((p) => { if (p.lat && p.lng) p.sea = seaDistance(p.lat, p.lng); });
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
-  if (all.length === 0 && PREV_PROPS.length > 0) {
-    console.error('❌ Все фиды упали — сохраняем предыдущие данные (' + PREV_PROPS.length + ' объектов)');
-    fs.writeFileSync(OUT_FILE, JSON.stringify(PREV_PROPS, null, 2));
-    return;
+  
+  // Fallback: если фид упал, берём его старые объекты из кэша
+  if (PREV_PROPS && PREV_PROPS.length > 0) {
+    const newFeeds = new Set(all.map(p => p.feedId));
+    const oldFeeds = new Set(PREV_PROPS.map(p => p.feedId));
+    const lostFeeds = Array.from(oldFeeds).filter(f => !newFeeds.has(f));
+    if (lostFeeds.length > 0) {
+      const restored = PREV_PROPS.filter(p => lostFeeds.includes(p.feedId));
+      console.log('   ♻️ Восстановлено ' + restored.length + ' объектов из кэша (упали фиды: ' + lostFeeds.join(', ') + ')');
+      all = all.concat(restored);
+    }
   }
+
   fs.writeFileSync(OUT_FILE, JSON.stringify(all, null, 2));
 fs.writeFileSync(path.join(__dirname, '../src/data/complex-cities.json'), JSON.stringify(complexCity, null, 2));
   console.log('Сохранено: ' + all.length + ' объектов');
