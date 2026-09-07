@@ -5,7 +5,6 @@ const { parseString } = require('xml2js');
 
 const feedsConfig = require('../src/config/feeds.json');
 
-} и нужно достать X
   for (const k of Object.keys(v)) {
     if (typeof v[k] === 'object' && v[k] !== null) {
       const inner = unwrap(v[k]);
@@ -208,21 +207,19 @@ function detectCity(address, lat, lng) {
 
 const digits = (s) => String(s).replace(/[^0-9]/g, '');
 
+
 function unwrap(v) {
   if (v == null) return '';
   if (typeof v === 'object') {
-    if (v.value != null) return v.value;
-    if (v.Value != null) return v.Value;
-    if (v._ != null) return v._;
-    if (v['#text'] != null) return v['#text'];
-    // Рекурсивно ищем value в первом свойстве
-    const keys = Object.keys(v);
-    if (keys.length === 1 && typeof v[keys[0]] === 'object') {
-      return unwrap(v[keys[0]]);
-    }
+    if (v.value !== undefined) return v.value;
+    if (v.Value !== undefined) return v.Value;
+    if (v._ !== undefined) return v._;
+    if (v['final-price'] !== undefined) return v['final-price'];
+    if (v['discount-price'] !== undefined) return v['discount-price'];
+    if (Array.isArray(v) && v.length > 0) return unwrap(v[0]);
     return '';
   }
-  return String(v);
+  return v;
 }
 
 function mapOffer(offer, feed, i) {
@@ -243,7 +240,7 @@ function mapOffer(offer, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(unwrap(deep(offer, ['price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'finalPrice', 'discount-price', 'discount', 'amount', 'Amount'], 0))), 10) || 0,
+    price: parseInt(digits(unwrap(deep(offer, ['discount', 'price', 'Price', 'total-price', 'cost', 'Cost', 'final-price', 'finalPrice', 'discount-price', 'amount', 'Amount'], 0)))), 10) || 0,
     title: clean(deep(offer, ['title', 'Title', 'name', 'Name', 'type', 'Type'], 0)) || (complex ? 'Квартира в ЖК ' + complex : 'Квартира'),
     description: rich(deep(offer, ['description', 'Description'], 0)),
     address: fullAddr,
@@ -266,7 +263,7 @@ function mapAvito(ad, feed, i) {
     feedId: feed.id,
     feedName: feed.name,
     region: feed.region,
-    price: parseInt(digits(deep(ad, ['Price', 'price', 'Cost'], 0)), 10) || 0,
+    price: parseInt(digits(unwrap(deep(ad, ['Price', 'price', 'Cost'], 0))))), 10) || 0,
     title: clean(deep(ad, ['Title', 'Name', 'name'], 0)) || 'Объект недвижимости',
     description: rich(deep(ad, ['Description', 'description'], 0)),
     address: findAddress(ad, 0) || feed.defaultAddress || feed.region,
