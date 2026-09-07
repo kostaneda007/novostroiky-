@@ -54,8 +54,8 @@ function timeAgo(iso: string | null): string {
   return d + ' дн. назад';
 }
 function Header({ hash }: { hash: string }) {
-  const favs = useFavs();
-  const cmp = useCmp();
+  const favs = useStore(FAV_KEY);
+  const cmp = useStore(CMP_KEY);
   const [open, setOpen] = useState(false);
   const nav = [
     { h: '#/', l: 'Карта' },
