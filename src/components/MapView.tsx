@@ -159,7 +159,7 @@ function PropertyCard({ p }: { p: Property }) {
     <a href={'#/property/' + encodeURIComponent(p.id)} target="_blank" rel="noopener" className="group anim-card block rounded-[24px] bg-white border border-[#E6E8EB] shadow-sm p-3 hover:shadow-lg hover:border-[#2563EB] transition">
       {good.length ? (
         <div className="relative rounded-2xl overflow-hidden bg-[#FFFFFF]">
-          <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-105" />
+          <img referrerPolicy="no-referrer" loading="lazy" src={good[idx]} alt={p.title} onError={() => markBad(good[idx])} className="w-full h-56 object-contain bg-white transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-[#111827]/55 text-white text-xs font-medium">{idx + 1} из {good.length}</div>
           {good.length > 1 && (<>
             <button onClick={(e) => { block(e); setI((idx - 1 + good.length) % good.length); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 shadow flex items-center justify-center"><Chevron dir="l" /></button>
